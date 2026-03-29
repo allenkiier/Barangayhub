@@ -1,0 +1,91 @@
+*{
+  margin: 0;
+}
+
+a, Link{
+  text-decoration: none;
+}
+
+.sidem{
+  width: 60px;
+  height: 95vh;
+  position: fixed;
+  left: 15px;
+  top:20px;
+  color: #eee6e3;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  transition: width 0.3s ease;
+}
+
+.sidem-inner{
+  height: 100%;
+  background: #060745;
+  position: fixed;
+   backdrop-filter: blur(100px);
+  -webkit-backdrop-filter: blur(100px);
+  border: 1px solid rgb(255, 255, 255, 0.125);
+  border-radius: 10px;
+  padding:20px 0 10px 0;
+  display:flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: stretch;
+  overflow: hidden;
+  box-shadow: 7px, -5px, 47px, -4px rgba(0, 0, 0, 0.36);
+  -webkit-box-shadow: 7px, -5px, 47px, -4px rgba(0, 0, 0, 0.36);
+  -moz-box-shadow: 7px, -5px, 47px, -4px rgba(0, 0, 0, 0.36);
+}
+
+.sidem:hover{
+  width:20px;
+}
+#logo{
+  width: 58px;
+  margin-bottom: 20px;
+}
+.side-op > div{
+  height:30px;
+}
+
+.side-op, .lo{
+  display: flex;
+  flex-direction: column;
+}
+
+.sideitem{
+  display: flex;
+  align-items: center;
+  gap:14px;
+  padding:10px 14px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.sideitem:hover{
+  font-size: 24px;
+  min-width: 24px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.sideitem span{
+  white-space: nowrap;
+  opacity:0;
+  transform: translate(-10px);
+  transition: all 0.25s ease;
+}
+
+.sideitem:hover .sideitem span{
+  opacity:1;
+  transform: translateX(0);
+}
+
+.maindash{
+  height: 99vh;
+  width: 99.7vw;
+  display: flex;
+  flex-direction: row;
+  border: 2px solid green;
+}
