@@ -17,77 +17,70 @@ export default function UserLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false); // Admin checkbox
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!email || !password) {
-    alert("Please fill in all fields");
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    const response = await fetch("http://localhost:3001/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email_ad: email,
-        password,
-        isAdmin,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.error || "Login failed");
+    if (!email || !password) {
+      alert("Please fill in all fields");
       return;
     }
 
-    // ✅ Store session data
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("userid", data.userid);
-    localStorage.setItem("isAdmin", data.isAdmin);
+    setIsLoading(true);
 
-    // ✅ Redirect based on role (BACKEND decides truth)
-    if (data.isAdmin) {
-      navigate("/admin-dash");
-    } else {
-      navigate("/user-dash");
+    try {
+      const response = await fetch("http://localhost:3001/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email_ad: email,
+          password,
+          isAdmin,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Login failed");
+        return;
+      }
+
+      // ✅ STORE USER OBJECT
+      localStorage.setItem("user", JSON.stringify({
+        userid: data.userid,
+        token: data.token,
+        isAdmin: data.isAdmin
+      }));
+
+      // Redirect
+      if (data.isAdmin) {
+        navigate("/admin-dash");
+      } else {
+        navigate("/user-dash");
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert("Server error during login");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-    alert("Server error during login");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <Container maxWidth="sm">
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-        width="450px"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <Card sx={{ width: "100%" }}>
-          <CardHeader
-            title={<Typography variant="h5">User Login</Typography>}
-            sx={{ textAlign: "center", pb: 0 }}
-          />
-          <CardContent sx={{ pt: 2 }}>
+          <CardHeader title={<Typography variant="h5">User Login</Typography>} />
+          <CardContent>
             <form onSubmit={handleSubmit}>
               <TextField
                 label="Email"
-                type="email"
                 fullWidth
                 margin="normal"
                 value={email}
@@ -111,26 +104,9 @@ export default function UserLogin() {
                   />
                 }
                 label="Logging in as Admin?"
-                sx={{ mt: 1 }}
               />
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                sx={{ mt: 2 }}
-                disabled={isLoading}
-              >
+              <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
                 {isLoading ? "Logging in..." : "Login"}
-              </Button>
-              <Button
-                type="button"
-                variant="outlined"
-                fullWidth
-                sx={{ mt: 1 }}
-                onClick={() => navigate("/signup")}
-              >
-                Sign Up
               </Button>
             </form>
           </CardContent>

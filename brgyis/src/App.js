@@ -6,6 +6,7 @@ import UserSignup from "./pages/UserSignup";
 import UserLogin from "./pages/UserLogin";
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import ProfilePage from './pages/Profiling'
 
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/signup" element={<UserSignup />} />
           <Route path='/user-dash' element={<UserDashboard />} />
           <Route path='/admin-dash' element={<AdminDashboard />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </Router>
     </div>
