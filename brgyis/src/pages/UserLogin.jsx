@@ -50,20 +50,20 @@ export default function UserLogin() {
         return;
       }
 
-      // ✅ STORE USER OBJECT
-      localStorage.setItem("user", JSON.stringify({
-        userid: data.userid,
-        token: data.token,
-        isAdmin: data.isAdmin
-      }));
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          userid: data.userid,
+          token: data.token,
+          isAdmin: data.isAdmin,
+        })
+      );
 
-      // Redirect
       if (data.isAdmin) {
         navigate("/admin-dash");
       } else {
         navigate("/user-dash");
       }
-
     } catch (err) {
       console.error(err);
       alert("Server error during login");
@@ -96,6 +96,7 @@ export default function UserLogin() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+
               <FormControlLabel
                 control={
                   <Checkbox
@@ -105,8 +106,19 @@ export default function UserLogin() {
                 }
                 label="Logging in as Admin?"
               />
+
               <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
                 {isLoading ? "Logging in..." : "Login"}
+              </Button>
+
+              {/* ✅ SIGN UP BUTTON */}
+              <Button
+                variant="text"
+                fullWidth
+                sx={{ mt: 1 }}
+                onClick={() => navigate("/signup")}
+              >
+                Don't have an account? Sign Up
               </Button>
             </form>
           </CardContent>

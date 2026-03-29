@@ -10,7 +10,7 @@ import Divider from '@mui/material/Divider';
 const UserSideBar = () => {
   return (
     <div className='sidebar'>
-        <img src='bry.png' alt='logo' id='logo'/>
+        <img src='bryimg.png' alt='logo' id='logo'/>
         <div className='sidem-inner'>
             <div className='side-op'>
                 <Link to="/profile" className="side-item">

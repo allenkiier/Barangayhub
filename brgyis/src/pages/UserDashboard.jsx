@@ -35,7 +35,7 @@ const UserDashboard = () => {
       })
       .then((data) => {
         // 🔥 This matches backend: { username: row.user_name }
-        setUsername(data.username);
+        setUsername(data.user_name);
       })
       .catch((err) => {
         console.error("Fetch error:", err);
@@ -57,7 +57,7 @@ const UserDashboard = () => {
               <h5>v1.0.0</h5>
             </div>
             <div id='side-head'>
-              <div>
+              <div style={{ textAlign: "right" }}>
                 <h5>{greeting}</h5>
                 <h5>{username}</h5>
               </div>
@@ -66,7 +66,7 @@ const UserDashboard = () => {
           </div>
 
           <br />
-          <h1>User Dashboard</h1> <br />
+          <h1>User's Portal</h1> <br />
           <TransactionList/>
         </div>
       </div>

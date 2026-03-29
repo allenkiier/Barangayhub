@@ -6,7 +6,7 @@ import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import EditDocumentIcon from '@mui/icons-material/EditDocument';
 
 const Item = styled(Paper)(({ bgcolor }) => ({
-  width: 200,
+  width: 220,
   height: 75,
   padding: 10,
   textAlign: 'left',
@@ -57,7 +57,7 @@ const TransactionList = () => {
   return (
     <ThemeProvider theme={lightTheme}>
       <div>
-        <h2>Transaction Lists</h2>
+        <h4>Transaction List</h4>
 
         <Box sx={{ flexGrow: 1, p: 2 }}>
           <Grid container spacing={2} justifyContent="flex-start">

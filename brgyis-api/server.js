@@ -27,14 +27,29 @@ db.run(`PRAGMA foreign_keys = ON`);
 
 // ===================== TABLES =====================
 db.serialize(() => {
-
   db.run(`
     CREATE TABLE IF NOT EXISTS user (
       userid INTEGER PRIMARY KEY AUTOINCREMENT,
       user_name TEXT NOT NULL,
       passwordHash TEXT NOT NULL,
       isAdmin INTEGER NOT NULL DEFAULT 0,
-      email_ad TEXT UNIQUE NOT NULL
+      email_ad TEXT UNIQUE NOT NULL,
+
+      civil_status TEXT,
+      contact_no TEXT,
+      isPWD INTEGER DEFAULT 0,
+      isSenior INTEGER DEFAULT 0,
+      barangay_id TEXT,
+      national_id TEXT,
+
+      house_no TEXT,
+      street TEXT,
+      barangay TEXT,
+      municipality TEXT,
+      zip_code TEXT,
+      province TEXT,
+
+      residence_start_date TEXT
     )
   `);
 
@@ -68,7 +83,6 @@ db.serialize(() => {
       FOREIGN KEY (captain_id) REFERENCES council(council_id)
     )
   `);
-
 });
 
 // ===================== LOGIN =====================
@@ -92,6 +106,7 @@ app.post("/api/login", (req, res) => {
           return res.status(401).json({ error: "Invalid credentials." });
         }
 
+        // Admin checks
         if (isAdmin && user.isAdmin !== 1) {
           return res.status(403).json({ error: "Not an admin." });
         }
@@ -100,6 +115,7 @@ app.post("/api/login", (req, res) => {
           return res.status(403).json({ error: "Login as admin." });
         }
 
+        // Generate token
         const token = jwt.sign(
           { userid: user.userid, isAdmin: user.isAdmin },
           SECRET_KEY,
@@ -109,34 +125,156 @@ app.post("/api/login", (req, res) => {
         res.json({
           userid: user.userid,
           isAdmin: user.isAdmin === 1,
-          token
+          token,
         });
       });
     }
   );
 });
 
-// ===================== GET USER =====================
+app.post('/api/signup', (req, res) => {
+  const { user_name, email_ad, password, isAdmin } = req.body;
+
+  if (!user_name || !email_ad || !password) {
+    return res.status(400).json({ error: 'Name, email, and password are required.' });
+  }
+
+  // Check if email exists in either table
+  db.get(
+    'SELECT 1 FROM user WHERE email_ad = ? UNION SELECT 1 FROM admin_requests WHERE email_ad = ?',
+    [email_ad, email_ad],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: 'Database error.' });
+      if (row) return res.status(400).json({ error: 'Email already registered or pending approval.' });
+
+      // Hash password
+      bcrypt.hash(password, 10, (hashErr, hashedPassword) => {
+        if (hashErr) return res.status(500).json({ error: 'Password hashing failed.' });
+
+        if (isAdmin) {
+          // Insert into admin_requests
+          db.run(
+            `INSERT INTO admin_requests (user_name, email_ad, passwordHash) VALUES (?, ?, ?)`,
+            [user_name, email_ad, hashedPassword],
+            function (insertErr) {
+              if (insertErr) return res.status(500).json({ error: insertErr.message });
+              return res.status(201).json({
+                message: 'Admin request submitted for approval',
+                request_id: this.lastID,
+              });
+            }
+          );
+        } else {
+          // Insert directly into user
+          db.run(
+            `INSERT INTO user (user_name, email_ad, passwordHash, isAdmin) VALUES (?, ?, ?, 0)`,
+            [user_name, email_ad, hashedPassword],
+            function (insertErr) {
+              if (insertErr) return res.status(500).json({ error: insertErr.message });
+              return res.status(201).json({
+                message: 'User created successfully',
+                userid: this.lastID,
+              });
+            }
+          );
+        }
+      });
+    }
+  );
+});
+
+// ===================== GET USER (FULL DATA) =====================
 app.get('/api/user/:userid', (req, res) => {
   const userid = parseInt(req.params.userid, 10);
 
   db.get(
-    `SELECT user_name FROM user WHERE userid = ?`,
+    `SELECT * FROM user WHERE userid = ?`,
     [userid],
     (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      if (!row) return res.status(404).json({ error: "User not found" });
+
+      res.json(row);
+    }
+  );
+});
+
+// ===================== UPDATE PROFILE =====================
+app.put("/api/user/:userid/profile", (req, res) => {
+  console.log("✅ PROFILE UPDATE HIT");
+
+  const userid = req.params.userid;
+
+  const {
+    user_name,
+    email_ad,
+    civil_status,
+    contact_no,
+    isPWD,
+    isSenior,
+    barangay_id,
+    national_id,
+    house_no,
+    street,
+    barangay,
+    municipality,
+    zip_code,
+    province,
+    residence_start_date
+  } = req.body;
+
+  const sql = `
+    UPDATE user SET
+      user_name = ?,
+      email_ad = ?,
+      civil_status = ?,
+      contact_no = ?,
+      isPWD = ?,
+      isSenior = ?,
+      barangay_id = ?,
+      national_id = ?,
+      house_no = ?,
+      street = ?,
+      barangay = ?,
+      municipality = ?,
+      zip_code = ?,
+      province = ?,
+      residence_start_date = ?
+    WHERE userid = ?
+  `;
+
+  db.run(
+    sql,
+    [
+      user_name,
+      email_ad,
+      civil_status,
+      contact_no,
+      isPWD,
+      isSenior,
+      barangay_id,
+      national_id,
+      house_no,
+      street,
+      barangay,
+      municipality,
+      zip_code,
+      province,
+      residence_start_date,
+      userid
+    ],
+    function (err) {
       if (err) {
-        console.error(err.message);
-        return res.status(500).json({ error: 'Server error' });
+        console.error("DB ERROR:", err.message);
+        return res.status(500).json({ error: err.message });
       }
 
-      if (!row) {
-        console.log("NO USER FOUND for ID:", userid);
+      if (this.changes === 0) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      res.json({
-        username: row.user_name
-      });
+      res.json({ message: "Profile updated successfully" });
     }
   );
 });

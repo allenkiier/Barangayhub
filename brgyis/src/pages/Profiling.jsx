@@ -67,21 +67,32 @@ const Profiling = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:3001/api/user/profile", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(formData)
-      });
+      const res = await fetch(
+        `http://localhost:3001/api/user/${formData.userid}/profile`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(formData)
+        }
+      );
 
-      const data = await res.json();
+      const text = await res.text(); // 🔥 safer
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Server did not return JSON");
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Update failed");
       }
 
       alert(data.message);
+
     } catch (err) {
       console.error("Submit error:", err.message);
       alert("Error: " + err.message);
