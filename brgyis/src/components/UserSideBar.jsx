@@ -5,6 +5,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import Divider from '@mui/material/Divider';
+import Groups2Icon from '@mui/icons-material/Groups2';
 
 
 const UserSideBar = () => {
@@ -26,7 +27,12 @@ const UserSideBar = () => {
                 <Link to="/transaction" className="side-item">
                     <ReceiptIcon/>
                     <span>Transactions</span>
-                </Link>  
+                </Link>
+
+                <Link to="/councilprev" className="side-item">
+                    <Groups2Icon/>
+                    <span>Council</span>
+                </Link>
             </div>
 
         

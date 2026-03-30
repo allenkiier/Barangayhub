@@ -137,3 +137,15 @@ a, Link{
     justify-content: right;
     gap: 5px;
   }
+
+  .council-chart{
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cncilrow{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }

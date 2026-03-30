@@ -50,6 +50,7 @@ export default function UserLogin() {
         return;
       }
 
+      // Save session
       localStorage.setItem(
         "user",
         JSON.stringify({
@@ -59,6 +60,7 @@ export default function UserLogin() {
         })
       );
 
+      // Redirect based on role
       if (data.isAdmin) {
         navigate("/admin-dash");
       } else {
@@ -74,9 +76,17 @@ export default function UserLogin() {
 
   return (
     <Container maxWidth="sm">
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <Card sx={{ width: "100%" }}>
-          <CardHeader title={<Typography variant="h5">User Login</Typography>} />
+          <CardHeader
+            title={<Typography variant="h5">User Login</Typography>}
+          />
+
           <CardContent>
             <form onSubmit={handleSubmit}>
               <TextField
@@ -87,6 +97,7 @@ export default function UserLogin() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+
               <TextField
                 label="Password"
                 type="password"
@@ -104,14 +115,19 @@ export default function UserLogin() {
                     onChange={(e) => setIsAdmin(e.target.checked)}
                   />
                 }
-                label="Logging in as Admin?"
+                label="Login as Admin"
               />
 
-              <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                sx={{ mt: 2 }}
+                disabled={isLoading}
+              >
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
 
-              {/* ✅ SIGN UP BUTTON */}
               <Button
                 variant="text"
                 fullWidth

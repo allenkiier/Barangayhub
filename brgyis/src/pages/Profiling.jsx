@@ -9,6 +9,7 @@ import {
   Box,
   Grid
 } from "@mui/material";
+import UserSideBar from "../components/UserSideBar";
 
 const Profiling = () => {
   const [formData, setFormData] = useState({
@@ -102,6 +103,8 @@ const Profiling = () => {
   if (loading) return <div>Loading...</div>;
 
   return (
+    <>
+    <UserSideBar />
     <Container maxWidth="md">
       <Box sx={{ mt: 3 }}>
         <Typography variant="h5" gutterBottom>
@@ -296,6 +299,7 @@ const Profiling = () => {
         </form>
       </Box>
     </Container>
+    </>
   );
 };
 
