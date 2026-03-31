@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import AdminSideBar from '../components/AdminSideBar';
 import AdminRequest from '../components/AdminRequest';
+import Request from '../components/Request';
 
 const AdminDashboard = () => {
   const [greeting, setGreeting] = useState('');
@@ -67,6 +68,7 @@ const AdminDashboard = () => {
           <h1>Admin Dashboard</h1> <br />
         </div>
         <AdminRequest />
+        <Request/>
       </div>
     </div>
   );

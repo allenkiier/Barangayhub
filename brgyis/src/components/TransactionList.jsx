@@ -1,76 +1,100 @@
 import React, { useEffect, useState } from 'react';
-import Grid from '@mui/material/Grid';
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
-import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
+import { Grid, Paper, Box, Typography, ThemeProvider, createTheme, styled } from '@mui/material';
+
+// --- Modals ---
+import IndigencyRequest from '../modals/IndigencyRequest';
+// import BrgyIDRequest from '../modals/BrgyIDRequest';
+
+// --- Icons ---
+import DescriptionIcon from '@mui/icons-material/Description';
+import BadgeIcon from '@mui/icons-material/Badge';
+import GavelIcon from '@mui/icons-material/Gavel';
+import BusinessCenterIcon from '@mui/icons-material/Business';
+import ReportProblemIcon from '@mui/icons-material/Report';
+import MapsUgcIcon from '@mui/icons-material/MapsUgc';
 import EditDocumentIcon from '@mui/icons-material/EditDocument';
 
-const Item = styled(Paper)(({ bgcolor }) => ({
-  width: 220,
-  height: 75,
-  padding: 10,
-  textAlign: 'left',
-  color: '#fff',
-  background: bgcolor,
-  display: 'flex',
-  gap:'5px',
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  justifyContent: 'flex-start',
-  borderRadius: 12,
-  cursor: 'pointer',
-  transition: '0.2s',
-  '&:hover': {
-    transform: 'scale(1.03)',
-    opacity: 0.9
-  }
+const ServiceCard = styled(Paper)(({ bgcolor }) => ({
+  width: '100%', maxWidth: 250, height: 95, padding: 15, color: '#fff',
+  background: bgcolor, display: 'flex', gap: '15px', alignItems: 'center',
+  borderRadius: 16, cursor: 'pointer', transition: 'transform 0.2s',
+  '&:hover': { transform: 'translateY(-5px)', filter: 'brightness(1.1)' }
 }));
 
-const lightTheme = createTheme({
-  palette: { mode: 'light' }
+const theme = createTheme({
+  palette: { mode: 'light' },
+  typography: { fontFamily: 'Inter, sans-serif' }
 });
 
-const colors = [
-  'linear-gradient(134deg, rgba(25,118,210,1) 76%, rgba(240,240,240,1) 100%)',
-  'linear-gradient(134deg,rgba(156, 39, 176, 1) 76%, rgba(237, 230, 230, 1) 100%)',
-  'linear-gradient(134deg,rgba(46, 125, 50, 1) 76%, rgba(237, 230, 230, 1) 100%)',
-  'linear-gradient(134deg,rgba(237, 108, 2, 1) 76%, rgba(237, 230, 230, 1) 100%)',
-  'linear-gradient(134deg,rgba(211, 47, 47, 1) 76%, rgba(237, 230, 230, 1) 100%)',
-  'linear-gradient(134deg,rgba(2, 136, 209, 1) 76%, rgba(237, 230, 230, 1) 100%)',
-  'linear-gradient(134deg,rgba(106, 27, 154, 1) 76%, rgba(237, 230, 230, 1) 100%)'
-];
-
-const getColorById = (id) => {
-  return colors[id % colors.length];
+const SERVICE_CONFIG = {
+  'Certificate of Indigency': { icon: <DescriptionIcon />, color: '#1976d2' },
+  'Barangay ID Form': { icon: <BadgeIcon />, color: '#9c27b0' },
+  'Barangay Clearance': { icon: <GavelIcon />, color: '#2e7d32' },
+  'Barangay Business Clearance': { icon: <BusinessCenterIcon />, color: '#ed6c02' },
+  'Incident Report': { icon: <ReportProblemIcon />, color: '#d32f2f' },
+  'Suggestions': { icon: <MapsUgcIcon />, color: '#0288d1' },
+  'Walk-In Complaint': { icon: <ReportProblemIcon />, color: '#6a1b9a' },
 };
 
 const TransactionList = () => {
-  const [transactions, setTransactions] = useState([]);
+  const [services, setServices] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
+  
+  // Safe retrieval of userid
+  const currentUserId = localStorage.getItem("userid");
 
   useEffect(() => {
     fetch('http://localhost:3001/api/transactions')
       .then(res => res.json())
-      .then(data => setTransactions(data))
-      .catch(err => console.error('Error fetching transactions:', err));
+      .then(data => setServices(data))
+      .catch(err => console.error("Fetch Error:", err));
   }, []);
 
-  return (
-    <ThemeProvider theme={lightTheme}>
-      <div>
-        <h4>Transaction List</h4>
+  const handleCloseModal = () => setSelectedService(null);
+  const getStyle = (name) => SERVICE_CONFIG[name] || { icon: <EditDocumentIcon />, color: '#607d8b' };
 
-        <Box sx={{ flexGrow: 1, p: 2 }}>
-          <Grid container spacing={2} justifyContent="flex-start">
-            {transactions.map((txn) => (
-              <Grid item xs={12} sm={6} md={4} key={txn.trans_id}>
-                <Item bgcolor={getColorById(txn.trans_id)}>
-                  <EditDocumentIcon /> {txn.trans_name}
-                </Item>
-              </Grid>
-            ))}
-          </Grid>
+  return (
+    <ThemeProvider theme={theme}>
+      <Box sx={{ p: 4}}>
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#1a237e' }}>Barangay E-Services</Typography>
+          <Typography variant="body1">Select a service below. Forms are auto-filled via your profile.</Typography>
         </Box>
-      </div>
+
+        <Grid container spacing={3}>
+          {services.map((svc) => {
+            const { icon, color } = getStyle(svc.trans_name);
+            return (
+              <Grid item key={svc.trans_id} xs={12} sm={6} md={4} lg={3}>
+                <ServiceCard bgcolor={color} elevation={3} onClick={() => setSelectedService(svc.trans_name)}>
+                  <Box sx={{ fontSize: '2.5rem', display: 'flex' }}>{icon}</Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{svc.trans_name}</Typography>
+                </ServiceCard>
+              </Grid>
+            );
+          })}
+        </Grid>
+
+        {/* Indigency Modal */}
+        <IndigencyRequest 
+          open={selectedService === 'Certificate of Indigency'} 
+          onClose={handleCloseModal}
+          serviceName="Certificate of Indigency"
+          userId={currentUserId}
+        />
+
+        {/* Brgy ID Modal - Ensure you apply the same Select fixes here! */}
+        {/* <BrgyIDRequest
+          open={selectedService === 'Barangay ID Form'} 
+          onClose={handleCloseModal}
+          serviceName="Barangay ID Form"
+          userId={currentUserId}
+        /> */}
+
+        {services.length === 0 && (
+          <Typography sx={{ mt: 4, fontStyle: 'italic', color: 'gray' }}>Loading services...</Typography>
+        )}
+      </Box>
     </ThemeProvider>
   );
 };

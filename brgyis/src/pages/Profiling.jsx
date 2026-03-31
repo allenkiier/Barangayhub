@@ -17,6 +17,9 @@ const Profiling = () => {
     user_name: "",
     email_ad: "",
     civil_status: "",
+    sex: "",
+    birthplace: "",
+    birthdate: "",
     contact_no: "",
     isPWD: 0,
     isSenior: 0,
@@ -79,7 +82,7 @@ const Profiling = () => {
         }
       );
 
-      const text = await res.text(); // 🔥 safer
+      const text = await res.text();
       let data;
 
       try {
@@ -104,201 +107,238 @@ const Profiling = () => {
 
   return (
     <>
-    <UserSideBar />
-    <Container maxWidth="md">
-      <Box sx={{ mt: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          User Profiling
-        </Typography>
+      <UserSideBar />
+      <Container maxWidth="md">
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="h5" gutterBottom>
+            User Profiling
+          </Typography>
 
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={2}>
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={2}>
 
-            {/* Credentials */}
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Username"
-                name="user_name"
-                value={formData.user_name || ""}
-                onChange={handleChange}
-              />
+              {/* Credentials */}
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Username"
+                  name="user_name"
+                  value={formData.user_name || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Email"
+                  name="email_ad"
+                  value={formData.email_ad || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              {/* Profile Info */}
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Civil Status"
+                  name="civil_status"
+                  value={formData.civil_status || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Sex"
+                  name="sex"
+                  value={formData.sex || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              {/* FIXED Birthday */}
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label="Birthday"
+                  name="birthdate"
+                  value={formData.birthdate || ""}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
+              {/* Added birthplace */}
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Birthplace"
+                  name="birthplace"
+                  value={formData.birthplace || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Contact Number"
+                  name="contact_no"
+                  value={formData.contact_no || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Barangay ID"
+                  name="barangay_id"
+                  value={formData.barangay_id || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="National ID"
+                  name="national_id"
+                  value={formData.national_id || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="House No"
+                  name="house_no"
+                  value={formData.house_no || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Street"
+                  name="street"
+                  value={formData.street || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Barangay"
+                  name="barangay"
+                  value={formData.barangay || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Municipality"
+                  name="municipality"
+                  value={formData.municipality || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Zip Code"
+                  name="zip_code"
+                  value={formData.zip_code || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Province"
+                  name="province"
+                  value={formData.province || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label="Residence Start Date"
+                  name="residence_start_date"
+                  value={formData.residence_start_date || ""}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
+              {/* Checkboxes */}
+              <Grid item xs={6}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.isPWD === 1}
+                      onChange={handleChange}
+                      name="isPWD"
+                    />
+                  }
+                  label="PWD"
+                />
+              </Grid>
+
+              <Grid item xs={6}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.isSenior === 1}
+                      onChange={handleChange}
+                      name="isSenior"
+                    />
+                  }
+                  label="Senior Citizen"
+                />
+              </Grid>
+
+              {/* Submit */}
+              <Grid item xs={12}>
+                <Button variant="contained" type="submit" fullWidth>
+                  Save / Update Profile
+                </Button>
+              </Grid>
+
             </Grid>
-
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Email"
-                name="email_ad"
-                value={formData.email_ad || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            {/* Profile Info */}
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Civil Status"
-                name="civil_status"
-                value={formData.civil_status || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Contact Number"
-                name="contact_no"
-                value={formData.contact_no || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Barangay ID"
-                name="barangay_id"
-                value={formData.barangay_id || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="National ID"
-                name="national_id"
-                value={formData.national_id || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="House No"
-                name="house_no"
-                value={formData.house_no || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Street"
-                name="street"
-                value={formData.street || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Barangay"
-                name="barangay"
-                value={formData.barangay || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Municipality"
-                name="municipality"
-                value={formData.municipality || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Zip Code"
-                name="zip_code"
-                value={formData.zip_code || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Province"
-                name="province"
-                value={formData.province || ""}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size="small"
-                type="date"
-                label="Residence Start Date"
-                name="residence_start_date"
-                value={formData.residence_start_date || ""}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-
-            {/* Checkboxes */}
-            <Grid item xs={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.isPWD === 1}
-                    onChange={handleChange}
-                    name="isPWD"
-                  />
-                }
-                label="PWD"
-              />
-            </Grid>
-
-            <Grid item xs={6}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.isSenior === 1}
-                    onChange={handleChange}
-                    name="isSenior"
-                  />
-                }
-                label="Senior Citizen"
-              />
-            </Grid>
-
-            {/* Submit */}
-            <Grid item xs={12}>
-              <Button variant="contained" type="submit" fullWidth>
-                Save / Update Profile
-              </Button>
-            </Grid>
-
-          </Grid>
-        </form>
-      </Box>
-    </Container>
+          </form>
+        </Box>
+      </Container>
     </>
   );
 };

@@ -36,6 +36,9 @@ db.serialize(() => {
       email_ad TEXT UNIQUE NOT NULL,
 
       civil_status TEXT,
+      sex TEXT,
+      birthdate TEXT,
+      birthplace TEXT,
       contact_no TEXT,
       isPWD INTEGER DEFAULT 0,
       isSenior INTEGER DEFAULT 0,
@@ -64,6 +67,26 @@ db.serialize(() => {
       FOREIGN KEY (userid) REFERENCES user(userid)
     )
   `);
+  db.run(`
+      CREATE TABLE IF NOT EXISTS indig_req (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id TEXT UNIQUE, 
+        userid INTEGER,
+
+        user_name TEXT,
+        sex TEXT,
+        civil_status TEXT,
+
+        house_no TEXT,
+        street TEXT,
+        barangay TEXT,
+        municipality TEXT,
+        province TEXT,
+
+        date_issued TEXT, 
+        FOREIGN KEY (userid) REFERENCES user(userid)
+      );
+    `)
 
   db.run(`
     CREATE TABLE IF NOT EXISTS transactions (
@@ -72,21 +95,31 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS request (
-      req_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      trans_id INTEGER NOT NULL,
-      secretary_id INTEGER,
-      captain_id INTEGER,
-      status TEXT DEFAULT 'pending',
-      secretary_signed_at TEXT,
-      captain_approved_at TEXT,
-      FOREIGN KEY (trans_id) REFERENCES transactions(trans_id),
-      FOREIGN KEY (secretary_id) REFERENCES council(council_id),
-      FOREIGN KEY (captain_id) REFERENCES council(council_id)
-    )
-  `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS request (
+        req_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id TEXT NOT NULL,
+        trans_id INTEGER NOT NULL,
+        userid INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending',
+        created_at TEXT DEFAULT (DATETIME('now')),
+
+        FOREIGN KEY (trans_id) REFERENCES transactions(trans_id),
+        FOREIGN KEY (userid) REFERENCES user(userid)
+      );
+    `)
 });
+
+// ===================== HELPERS =====================
+const calculateAge = (birthdate) => {
+  if (!birthdate) return '';
+  const today = new Date();
+  const birthDate = new Date(birthdate);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+  return age;
+};
 
 // ===================== LOGIN =====================
 app.post("/api/login", (req, res) => {
@@ -246,6 +279,9 @@ app.put("/api/user/:userid/profile", (req, res) => {
     user_name,
     email_ad,
     civil_status,
+    sex,
+    birthdate,
+    birthplace,
     contact_no,
     isPWD,
     isSenior,
@@ -265,6 +301,9 @@ app.put("/api/user/:userid/profile", (req, res) => {
       user_name = ?,
       email_ad = ?,
       civil_status = ?,
+      sex = ?,
+      birthdate = ?,
+      birthplace = ?,
       contact_no = ?,
       isPWD = ?,
       isSenior = ?,
@@ -287,6 +326,9 @@ app.put("/api/user/:userid/profile", (req, res) => {
       email_ad,
       civil_status,
       contact_no,
+      sex,
+      birthdate,
+      birthplace,
       isPWD,
       isSenior,
       barangay_id,
@@ -301,9 +343,7 @@ app.put("/api/user/:userid/profile", (req, res) => {
       userid
     ],
     function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
 
       if (this.changes === 0) {
         return res.status(404).json({ error: "User not found" });
@@ -323,11 +363,7 @@ app.get("/api/users/admins", (req, res) => {
   `;
 
   db.all(query, [], (err, rows) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: err.message });
-    }
-
+    if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
@@ -340,7 +376,6 @@ app.post("/api/council/add", (req, res) => {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  // prevent duplicates
   db.get(`SELECT * FROM council WHERE userid = ?`, [userid], (err, row) => {
     if (row) {
       return res.status(400).json({ error: "User already in council" });
@@ -352,9 +387,7 @@ app.post("/api/council/add", (req, res) => {
     `;
 
     db.run(query, [userid, name, role, is_active], function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
 
       res.json({
         message: "Council member added successfully",
@@ -364,33 +397,23 @@ app.post("/api/council/add", (req, res) => {
   });
 });
 
-/// 1. GET ALL COUNCIL MEMBERS (Active and Inactive)
-// Used by the Management Table to show everyone who has ever been admitted
 app.get("/api/council/all", (req, res) => {
   const query = "SELECT * FROM council ORDER BY is_active DESC, role ASC";
 
   db.all(query, [], (err, rows) => {
-    if (err) {
-      console.error("Error fetching all members:", err.message);
-      return res.status(500).json({ error: "Failed to fetch council records" });
-    }
+    if (err) return res.status(500).json({ error: "Failed to fetch council records" });
     res.json(rows);
   });
 });
 
-// 2. UPDATE MEMBER STATUS (The "Soft Delete" Toggle)
-// Used to switch is_active between 1 and 0
 app.put("/api/council/update-status/:id", (req, res) => {
-  const { is_active } = req.body; // Expects { is_active: 0 or 1 }
+  const { is_active } = req.body;
   const { id } = req.params;
 
   const query = `UPDATE council SET is_active = ? WHERE council_id = ?`;
 
   db.run(query, [is_active, id], function (err) {
-    if (err) {
-      console.error("Error updating status:", err.message);
-      return res.status(500).json({ error: "Failed to update member status" });
-    }
+    if (err) return res.status(500).json({ error: "Failed to update member status" });
 
     if (this.changes === 0) {
       return res.status(404).json({ error: "Member not found" });
@@ -404,16 +427,13 @@ app.get("/api/council/list", (req, res) => {
   const query = "SELECT * FROM council WHERE is_active = 1";
 
   db.all(query, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
+    if (err) return res.status(500).json({ error: err.message });
 
-    // Initialize our structured object
     const chartData = {
       punongBarangay: null,
       sbMembers: [],
       skChairman: null,
-      staff: [] // For Secretary, Treasurer, and Clerk
+      staff: []
     };
 
     rows.forEach((member) => {
@@ -432,13 +452,144 @@ app.get("/api/council/list", (req, res) => {
         case "Barangay Clerk":
           chartData.staff.push(member);
           break;
-        default:
-          // Optional: handle other roles or ignore
-          break;
       }
     });
 
     res.json(chartData);
+  });
+});
+
+app.get('/api/user/:userid/form-indigency', (req, res) => {
+  const userid = parseInt(req.params.userid, 10);
+
+  db.get(
+    `SELECT user_name, civil_status, sex, house_no, street, barangay, municipality, province, birthdate
+     FROM user WHERE userid = ?`,
+    [userid],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!row) return res.status(404).json({ error: "User not found" });
+
+      res.json({
+        name: row.user_name,
+        civilStatus: row.civil_status,
+        sex: row.sex,
+        house_no: row.house_no,
+        street: row.street,
+        barangay: row.barangay,
+        municipality: row.municipality,
+        province: row.province,
+        age: calculateAge(row.birthdate)
+      });
+    }
+  );
+});
+
+app.post('/api/indigency/submit', (req, res) => {
+  const { userid } = req.body;
+
+  if (!userid) return res.status(400).json({ error: "User ID required" });
+
+  db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const transaction_id = `IND-${Date.now()}`;
+    const trans_id = 1;
+
+    // Generate a readable date (e.g., "April 1, 2026")
+    const date_issued = new Intl.DateTimeFormat('en-PH', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(new Date());
+
+    db.run(
+      `INSERT INTO indig_req (
+        transaction_id, userid, user_name, sex, civil_status,
+        house_no, street, barangay, municipality, province, date_issued
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, // Added date_issued
+      [
+        transaction_id,
+        userid,
+        user.user_name,
+        user.sex,
+        user.civil_status,
+        user.house_no,
+        user.street,
+        user.barangay,
+        user.municipality,
+        user.province,
+        date_issued // Pass the generated date
+      ],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+
+        db.run(
+          `INSERT INTO request (transaction_id, trans_id, userid, status)
+           VALUES (?, ?, ?, 'pending')`,
+          [transaction_id, trans_id, userid],
+          function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Request submitted successfully", transaction_id });
+          }
+        );
+      }
+    );
+  });
+});
+
+app.get('/api/indigency/:transaction_id', (req, res) => {
+  const sql = `SELECT * FROM indig_req WHERE transaction_id = ?`;
+  
+  db.get(sql, [req.params.transaction_id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ message: "Record not found" });
+    res.json(row);
+  });
+});
+
+app.get('/api/requests/all', (req, res) => {
+  const query = `
+    SELECT 
+      r.req_id,
+      r.transaction_id,
+      r.trans_id,
+      r.status,
+      r.created_at,
+
+      u.user_name,
+      t.trans_name
+
+    FROM request r
+    LEFT JOIN user u ON r.userid = u.userid
+    LEFT JOIN transactions t ON r.trans_id = t.trans_id
+
+    ORDER BY r.req_id DESC
+  `;
+
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      console.error("Fetch error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
+
+app.put('/api/requests/:req_id/status', (req, res) => {
+  const { status } = req.body; 
+  const { req_id } = req.params;
+
+  const sql = `UPDATE request SET status = ? WHERE req_id = ?`;
+
+  db.run(sql, [status, req_id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    
+    
+    if (this.changes === 0) return res.status(404).json({ error: "Request ID not found in database" });
+
+    res.json({ message: `Status updated to ${status}`, status });
   });
 });
 
@@ -449,6 +600,8 @@ app.get('/api/transactions', (req, res) => {
     res.json(rows);
   });
 });
+
+
 
 // ===================== START SERVER =====================
 app.listen(PORT, () => {
