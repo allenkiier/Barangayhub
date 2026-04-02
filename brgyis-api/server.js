@@ -195,8 +195,18 @@ db.serialize(() => {
 
         FOREIGN KEY(userid) REFERENCES user(userid)
       );
-    `)
-});
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS open_message (
+        open_mess_id TEXT PRIMARY KEY,
+        sender TEXT,
+        contact_num TEXT,
+        narrative TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  });
 
 // ===================== HELPERS =====================
 const calculateAge = (birthdate) => {
@@ -1055,6 +1065,138 @@ app.get('/api/transactions', (req, res) => {
   });
 });
 
+// ===================== SUGGESTIONS =====================
+app.post("/api/suggestions", (req, res) => {
+  const { sender, contact_num, narrative } = req.body;
+
+  if (!narrative) {
+    return res.status(400).json({ error: "Suggestion is required" });
+  }
+
+  // Step 1: Get latest ID
+  const getLastIdQuery = `
+    SELECT open_mess_id FROM open_message
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+
+  db.get(getLastIdQuery, [], (err, row) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Failed to generate ID" });
+    }
+
+    let newId = "SUG-00001";
+
+    if (row && row.open_mess_id) {
+      const lastNumber = parseInt(row.open_mess_id.split("-")[1]);
+      const nextNumber = lastNumber + 1;
+
+      newId = "SUG-" + String(nextNumber).padStart(5, "0");
+    }
+
+    // Step 2: Insert with new ID
+    const insertQuery = `
+      INSERT INTO open_message (open_mess_id, sender, contact_num, narrative)
+      VALUES (?, ?, ?, ?)
+    `;
+
+    db.run(insertQuery, [newId, sender, contact_num, narrative], function (err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Failed to save suggestion" });
+      }
+
+      res.json({
+        message: "Suggestion submitted successfully",
+        id: newId
+      });
+    });
+  });
+});
+
+// GET all open messages
+app.get("/api/open-messages", (req, res) => {
+  const sql = `
+    SELECT open_mess_id, sender, contact_num, narrative, created_at
+    FROM open_message
+    ORDER BY created_at DESC
+  `;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Failed to fetch messages" });
+    }
+
+    res.json(rows);
+  });
+});
+
+// DELETE message
+app.delete("/api/open-messages/:id", (req, res) => {
+  const { id } = req.params;
+
+  const sql = `DELETE FROM open_message WHERE open_mess_id = ?`;
+
+  db.run(sql, [id], function (err) {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Failed to delete message" });
+    }
+
+    res.json({ message: "Deleted successfully" });
+  });
+});
+
+// CREATE complaint
+app.post("/api/complaints", (req, res) => {
+  const { sender, contact_num, narrative } = req.body;
+
+  if (!narrative) {
+    return res.status(400).json({ error: "Complaint is required" });
+  }
+
+  // Get latest COM- ID only
+  const getLastIdQuery = `
+    SELECT open_mess_id FROM open_message
+    WHERE open_mess_id LIKE 'COM-%'
+    ORDER BY created_at DESC
+    LIMIT 1
+  `;
+
+  db.get(getLastIdQuery, [], (err, row) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Failed to generate ID" });
+    }
+
+    let newId = "COM-00001";
+
+    if (row && row.open_mess_id) {
+      const lastNumber = parseInt(row.open_mess_id.split("-")[1]);
+      const nextNumber = lastNumber + 1;
+      newId = "COM-" + String(nextNumber).padStart(5, "0");
+    }
+
+    const insertQuery = `
+      INSERT INTO open_message (open_mess_id, sender, contact_num, narrative)
+      VALUES (?, ?, ?, ?)
+    `;
+
+    db.run(insertQuery, [newId, sender, contact_num, narrative], function (err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Failed to save complaint" });
+      }
+
+      res.json({
+        message: "Complaint submitted successfully",
+        id: newId
+      });
+    });
+  });
+});
 
 
 // ===================== START SERVER =====================

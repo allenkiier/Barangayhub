@@ -8,6 +8,7 @@ import Divider from '@mui/material/Divider';
 import Groups2Icon from '@mui/icons-material/Groups2';
 
 
+
 const UserSideBar = () => {
   return (
     <div className='sidebar'>
@@ -33,6 +34,10 @@ const UserSideBar = () => {
                     <Groups2Icon/>
                     <span>Council</span>
                 </Link>
+
+                
+
+
             </div>
 
         

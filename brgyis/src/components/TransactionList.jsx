@@ -7,6 +7,8 @@ import BrgyIDRequest from '../modals/BrgyIDRequest';
 import BrgyClearanceRequest from '../modals/BrgyClearanceRequest';
 import BusinessClearanceRequest from '../modals/BusinessClearanceRequest';
 import IncidentReportRequest from '../modals/IncidentReportRequest';
+import Suggestion from '../modals/Suggestion';
+import Complaints from '../modals/Complaints';
 
 // Icons
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -163,6 +165,20 @@ const TransactionList = () => {
             open={true}
             onClose={handleCloseModal}
             userid={currentUserId}
+          />
+        )}
+
+         {selectedService === 'Suggestions' && (
+          <Suggestion
+            open={true}
+            onClose={handleCloseModal}
+          />
+        )}
+
+        {selectedService === 'Walk-In Complaint' && (
+          <Complaints
+            open={true}
+            onClose={handleCloseModal}
           />
         )}
 

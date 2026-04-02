@@ -5,6 +5,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import Divider from '@mui/material/Divider';
 import Groups2Icon from '@mui/icons-material/Groups2';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 
 const AdminSideBar = () => {
@@ -27,6 +28,11 @@ const AdminSideBar = () => {
                 <Link to="/council" className="side-item">
                     <Groups2Icon/>
                     <span>Council</span>
+                </Link>
+
+                <Link to="/adminAdmit" className="side-item">
+                    <AdminPanelSettingsIcon/>
+                    <span>Admin Admission</span>
                 </Link>
                   
             </div>

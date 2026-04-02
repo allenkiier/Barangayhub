@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AdminSideBar from '../components/AdminSideBar';
-import AdminRequest from '../components/AdminRequest';
-import Request from '../components/Request';
+import OpenMessages from '../components/OpenMesssages';
 
 const AdminDashboard = () => {
   const [greeting, setGreeting] = useState('');
@@ -67,8 +66,7 @@ const AdminDashboard = () => {
           <br />
           <h1>Admin Dashboard</h1> <br />
         </div>
-        <AdminRequest />
-        <Request/>
+        <OpenMessages />
       </div>
     </div>
   );

@@ -10,6 +10,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProfilePage from './pages/Profiling'
 import Council from './pages/Council';
 import UserViewCouncil from './pages/UserViewCouncil';
+import AdminTransaction from './pages/AdminTransaction';
+import Admission from './pages/Admission';
 
 
 function App() {
@@ -24,6 +26,8 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/council" element={<Council />} />
           <Route path="/councilprev" element={<UserViewCouncil />} />
+          <Route path="/transaction-history" element={<AdminTransaction />} />
+          <Route path="/adminAdmit" element={<Admission />} />
         </Routes>
       </Router>
     </div>
