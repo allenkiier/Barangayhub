@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Grid, Paper, Box, Typography, ThemeProvider, createTheme, styled } from '@mui/material';
+import { Grid, Paper, Box, Typography, ThemeProvider, createTheme, styled, CircularProgress } from '@mui/material';
 
 // Modals
 import IndigencyRequest from '../modals/IndigencyRequest';
 import BrgyIDRequest from '../modals/BrgyIDRequest';
-import BrgyClearanceRequest from '../modals/BrgyClearanceRequest'
+import BrgyClearanceRequest from '../modals/BrgyClearanceRequest';
 import BusinessClearanceRequest from '../modals/BusinessClearanceRequest';
+import IncidentReportRequest from '../modals/IncidentReportRequest';
 
 // Icons
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -17,9 +18,18 @@ import MapsUgcIcon from '@mui/icons-material/MapsUgc';
 import EditDocumentIcon from '@mui/icons-material/EditDocument';
 
 const ServiceCard = styled(Paper)(({ bgcolor }) => ({
-  width: '100%', maxWidth: 250, height: 95, padding: 15, color: '#fff',
-  background: bgcolor, display: 'flex', gap: '15px', alignItems: 'center',
-  borderRadius: 16, cursor: 'pointer', transition: 'transform 0.2s',
+  width: '100%', 
+  maxWidth: 250, 
+  height: 95, 
+  padding: 15, 
+  color: '#fff',
+  background: bgcolor, 
+  display: 'flex', 
+  gap: '15px', 
+  alignItems: 'center',
+  borderRadius: 16, 
+  cursor: 'pointer', 
+  transition: 'transform 0.2s',
   '&:hover': { transform: 'translateY(-5px)', filter: 'brightness(1.1)' }
 }));
 
@@ -28,6 +38,7 @@ const theme = createTheme({
   typography: { fontFamily: 'Inter, sans-serif' }
 });
 
+// Mapping backend names to UI styles
 const SERVICE_CONFIG = {
   'Certificate of Indigency': { icon: <DescriptionIcon />, color: '#1976d2' },
   'Barangay ID Form': { icon: <BadgeIcon />, color: '#9c27b0' },
@@ -40,16 +51,34 @@ const SERVICE_CONFIG = {
 
 const TransactionList = () => {
   const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState(null);
 
-  const userData = JSON.parse(localStorage.getItem("user"));
+  // Safely get User Data
+  const getUserData = () => {
+    try {
+      const savedUser = localStorage.getItem("user");
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      return null;
+    }
+  };
+
+  const userData = getUserData();
   const currentUserId = userData?.userid;
 
   useEffect(() => {
     fetch('http://localhost:3001/api/transactions')
       .then(res => res.json())
-      .then(data => setServices(data))
-      .catch(err => console.error("Fetch Error:", err));
+      .then(data => {
+        setServices(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Fetch Error:", err);
+        setLoading(false);
+      });
   }, []);
 
   const handleCloseModal = () => setSelectedService(null);
@@ -68,54 +97,78 @@ const TransactionList = () => {
           </Typography>
         </Box>
 
-        <Grid container spacing={3}>
-          {services.map((svc) => {
-            const { icon, color } = getStyle(svc.trans_name);
-            return (
-              <Grid item key={svc.trans_id} xs={12} sm={6} md={4} lg={3}>
-                <ServiceCard
-                  bgcolor={color}
-                  elevation={3}
-                  onClick={() => setSelectedService(svc.trans_name)}
-                >
-                  <Box sx={{ fontSize: '2.5rem', display: 'flex' }}>{icon}</Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    {svc.trans_name}
-                  </Typography>
-                </ServiceCard>
-              </Grid>
-            );
-          })}
-        </Grid>
+        {loading ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CircularProgress size={24} />
+            <Typography>Loading available services...</Typography>
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {services.map((svc) => {
+              const { icon, color } = getStyle(svc.trans_name);
+              return (
+                <Grid item key={svc.trans_id} xs={12} sm={6} md={4} lg={3}>
+                  <ServiceCard
+                    bgcolor={color}
+                    elevation={3}
+                    onClick={() => setSelectedService(svc.trans_name)}
+                  >
+                    <Box sx={{ fontSize: '2.5rem', display: 'flex' }}>{icon}</Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      {svc.trans_name}
+                    </Typography>
+                  </ServiceCard>
+                </Grid>
+              );
+            })}
+          </Grid>
+        )}
 
-        {/* Modals */}
-        <IndigencyRequest
-          open={selectedService === 'Certificate of Indigency'}
-          onClose={handleCloseModal}
-          userId={currentUserId}
-        />
-
-        <BrgyIDRequest
-          open={selectedService === 'Barangay ID Form'}
-          onClose={handleCloseModal}
-          userId={currentUserId}
-        />
-
-        <BrgyClearanceRequest
-          open={selectedService === 'Barangay Clearance'}
-          onClose={handleCloseModal}
-          userId={currentUserId}
-        />
-
-          <BusinessClearanceRequest
-            open={selectedService === 'Barangay Business Clearance'}
+        {/* Conditional Rendering of Modals - Ensures props match server.js logic */}
+        
+        {selectedService === 'Certificate of Indigency' && (
+          <IndigencyRequest
+            open={true}
             onClose={handleCloseModal}
-            userId={currentUserId}
+            userid={currentUserId}
           />
+        )}
 
-        {services.length === 0 && (
+        {selectedService === 'Barangay ID Form' && (
+          <BrgyIDRequest
+            open={true}
+            onClose={handleCloseModal}
+            userid={currentUserId}
+          />
+        )}
+
+        {selectedService === 'Barangay Clearance' && (
+          <BrgyClearanceRequest
+            open={true}
+            onClose={handleCloseModal}
+            userid={currentUserId}
+          />
+        )}
+
+        {selectedService === 'Barangay Business Clearance' && (
+          <BusinessClearanceRequest
+            open={true}
+            onClose={handleCloseModal}
+            userid={currentUserId}
+          />
+        )}
+
+        {selectedService === 'Incident Report' && (
+          <IncidentReportRequest
+            open={true}
+            onClose={handleCloseModal}
+            userid={currentUserId}
+          />
+        )}
+
+        {!loading && services.length === 0 && (
           <Typography sx={{ mt: 4, fontStyle: 'italic', color: 'gray' }}>
-            Loading services...
+            No services currently available.
           </Typography>
         )}
       </Box>

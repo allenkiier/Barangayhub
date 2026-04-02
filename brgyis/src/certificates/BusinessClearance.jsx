@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import CallIcon from '@mui/icons-material/Call';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
 
 const BusinessClearance = ({ request }) => {
   const { transactionId: urlId } = useParams();
@@ -246,6 +249,22 @@ const BusinessClearance = ({ request }) => {
           </Typography>
           <Typography>Punong Barangay</Typography>
         </Box>
+
+          <footer style={{ width: '100%', marginTop: 'auto', paddingBottom: '10px' }}>
+            <hr style={{ height: '2px', backgroundColor: 'black', border: 'none', marginBottom: 5 }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444" }}>
+                  <div style={{ textAlign: "left" }}>
+                    <p style={{ fontWeight: 'bold' }}>Joyao-Joyao Multi Purpose-Hall</p>
+                    <p>Numancia 5604, Aklan Philippines</p>
+                  </div>
+                  <div style={{ textAlign: "left" }}>
+                      <p><FacebookIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} /> Brgy. Joyao-Joyao</p>
+                      <p><CallIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} /> 265-3774</p>
+                      <p><MailOutlineIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} /> blgujoyaojoyao03@gmail.com</p>
+                  </div>
+            </div>
+          </footer>
+        
       </Box>
     </>
   );

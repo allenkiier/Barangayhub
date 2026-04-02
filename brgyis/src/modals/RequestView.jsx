@@ -20,23 +20,24 @@ import CertificateOfIndigency from "../certificates/CertificateOfIndigency";
 import BarangayIDApplication from "../certificates/BarangayIDApplication";
 import BarangayClearance from "../certificates/BarangayClearance";
 import BusinessClearance from "../certificates/BusinessClearance";
+import IncidentReport from "../certificates/IncidentReport";
 
 // ✅ SIMPLE PRINT CONTAINER (NO forwardRef needed)
-const PrintWrapper = ({ children, innerRef }) => {
-  return (
-    <div
-      ref={innerRef}
-      style={{
-        width: "210mm",
-        minHeight: "297mm",
-        backgroundColor: "white",
-        padding: "20px"
-      }}
-    >
-      {children}
-    </div>
-  );
-};
+// const PrintWrapper = ({ children, innerRef }) => {
+//   return (
+//     <div
+//       ref={innerRef}
+//       style={{
+//         width: "210mm",
+//         minHeight: "297mm",
+//         backgroundColor: "white",
+//         padding: "20px"
+//       }}
+//     >
+//       {children}
+//     </div>
+//   );
+// };
 
 const RequestView = ({ open, onClose, request }) => {
   const [status, setStatus] = useState("pending");
@@ -50,6 +51,7 @@ const RequestView = ({ open, onClose, request }) => {
     2: BarangayIDApplication,
     3: BarangayClearance,
     4: BusinessClearance,
+    5: IncidentReport,
   };
 
   const TemplateComponent = request ? templateMap[request.trans_id] : null;
@@ -61,6 +63,7 @@ const RequestView = ({ open, onClose, request }) => {
       case 2: return { name: "Barangay_ID_Application", color: "#9c27b0" };
       case 3: return { name: "Barangay_Clearance", color: "#2e7d32" };
       case 4: return { name: "Business_Clearance", color: "#7d5b2e" };
+      case 5: return { name: "Incident_Report", color: "#9c2456" };
       default: return { name: "Document", color: "#757575" };
     }
   };

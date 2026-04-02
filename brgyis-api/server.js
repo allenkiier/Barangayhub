@@ -174,6 +174,28 @@ db.serialize(() => {
         FOREIGN KEY (userid) REFERENCES user(userid)
       );
     `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS incident_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id TEXT UNIQUE,
+
+        userid INTEGER,
+        user_name TEXT,
+
+        address TEXT, -- compressed address
+
+        incident_date TEXT,
+        incident_time TEXT,
+        incident_address TEXT,
+        narrative TEXT,
+
+        status TEXT DEFAULT 'pending',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+        FOREIGN KEY(userid) REFERENCES user(userid)
+      );
+    `)
 });
 
 // ===================== HELPERS =====================
@@ -663,30 +685,28 @@ app.get('/api/requests/all', (req, res) => {
       u.user_name,
       t.trans_name,
 
-      -- Barangay Clearance Data
-      bc.address,
-      bc.age,
-      bc.sex,
-      bc.civil_status,
-      bc.birthdate,
-      bc.birthplace,
+      bc.address AS bc_address,
+      bc.age AS bc_age,
+      bc.sex AS bc_sex,
+      bc.civil_status AS bc_civil_status,
+      bc.birthdate AS bc_birthdate,
+      bc.birthplace AS bc_birthplace,
       bc.purpose,
 
       bbc.trade_name,
-      bbc.business_address
-
+      bbc.business_address,
+      ir.address,
+      ir.incident_date,
+      ir.incident_time,
+      ir.incident_address,
+      ir.narrative
 
     FROM request r
-
     LEFT JOIN user u ON r.userid = u.userid
     LEFT JOIN transactions t ON r.trans_id = t.trans_id
-
-    LEFT JOIN brgy_clearance_req bc 
-      ON r.transaction_id = bc.transaction_id
-
-    LEFT JOIN business_clearance_req bbc
-      ON r.transaction_id = bbc.transaction_id
-
+    LEFT JOIN brgy_clearance_req bc ON r.transaction_id = bc.transaction_id
+    LEFT JOIN business_clearance_req bbc ON r.transaction_id = bbc.transaction_id
+    LEFT JOIN incident_reports ir ON r.transaction_id = ir.transaction_id
     ORDER BY r.req_id DESC
   `;
 
@@ -700,21 +720,6 @@ app.get('/api/requests/all', (req, res) => {
   });
 });
 
-app.put('/api/requests/:req_id/status', (req, res) => {
-  const { status } = req.body; 
-  const { req_id } = req.params;
-
-  const sql = `UPDATE request SET status = ? WHERE req_id = ?`;
-
-  db.run(sql, [status, req_id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    
-    if (this.changes === 0) return res.status(404).json({ error: "Request ID not found in database" });
-
-    res.json({ message: `Status updated to ${status}`, status });
-  });
-});
 
 app.get('/api/brgyid/:transaction_id', (req, res) => {
   db.get(
@@ -978,7 +983,69 @@ app.get('/api/business-clearance/:transaction_id', (req, res) => {
   );
 });
 
+// ===================== INCIDENT REPORT SUBMISSION =====================
+app.post('/api/incident-report/submit', (req, res) => {
+  const { userid, incident_date, incident_time, incident_address, narrative } = req.body;
 
+  console.log("POST /api/incident-report/submit called by user:", userid);
+
+  if (!userid) return res.status(400).json({ error: "User ID required" });
+
+  db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
+    if (err || !user) return res.status(404).json({ error: "User profile not found" });
+
+    const transaction_id = `INC-${Date.now()}`;
+    const trans_id = 5; // Matches your "Incident Report" ID
+    
+    const homeAddress = [user.house_no, user.street, user.barangay].filter(Boolean).join(", ");
+
+    // Insert into incident_reports
+    db.run(
+      `INSERT INTO incident_reports (
+        transaction_id, userid, user_name, address, 
+        incident_date, incident_time, incident_address, narrative
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [transaction_id, userid, user.user_name, homeAddress, incident_date, incident_time, incident_address, narrative],
+      function (err) {
+        if (err) {
+          console.error("Table Insert Error:", err.message);
+          return res.status(500).json({ error: err.message });
+        }
+
+        // Insert into general requests
+        db.run(
+          `INSERT INTO request (transaction_id, trans_id, userid, status) VALUES (?, ?, ?, 'pending')`,
+          [transaction_id, trans_id, userid],
+          (err2) => {
+            if (err2) return res.status(500).json({ error: err2.message });
+            res.json({ message: "Incident report submitted successfully", transaction_id });
+          }
+        );
+      }
+    );
+  });
+});
+
+app.get('/api/incident-report/:transaction_id', (req, res) => {
+  const { transaction_id } = req.params;
+
+  db.get(
+    `SELECT * FROM incident_reports WHERE transaction_id = ?`,
+    [transaction_id],
+    (err, row) => {
+      if (err) {
+        console.error("Fetch error:", err.message);
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (!row) {
+        return res.status(404).json({ error: "Incident report not found" });
+      }
+
+      res.json(row);
+    }
+  );
+});
 
 // ===================== TRANSACTIONS =====================
 app.get('/api/transactions', (req, res) => {
