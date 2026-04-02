@@ -21,27 +21,37 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
     province: ''
   });
 
+  // ✅ ALWAYS GET REAL USER ID
+  const resolvedUserId = userId || localStorage.getItem("userid");
+
   // ================= AUTO FILL =================
   useEffect(() => {
-    if (open && userId) {
-      setLoading(true);
+    if (!open || !resolvedUserId) return;
 
-      fetch(`http://localhost:3001/api/user/${userId}/form-indigency`)
-        .then(res => res.json())
-        .then(data => {
-          setFormData(data);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error(err);
-          setLoading(false);
-        });
-    }
-  }, [open, userId]);
+    console.log("✅ FETCHING USER ID:", resolvedUserId);
+
+    setLoading(true);
+
+    fetch(`http://localhost:3001/api/user/${resolvedUserId}/form-indigency`)
+      .then(res => res.json())
+      .then(data => {
+        setFormData(data);
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+
+  }, [open, resolvedUserId]);
 
   // ================= SUBMIT =================
   const handleSubmit = async () => {
-    if (!userId) return;
+    if (!resolvedUserId) {
+      alert("User not detected. Please login again.");
+      return;
+    }
 
     setSubmitting(true);
 
@@ -49,7 +59,7 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
       const res = await fetch('http://localhost:3001/api/indigency/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userid: userId })
+        body: JSON.stringify({ userid: resolvedUserId })
       });
 
       const data = await res.json();
@@ -81,19 +91,19 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
           <Grid container spacing={2}>
 
             <Grid item xs={12}>
-              <TextField fullWidth label="Full Name" value={formData.name} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="Full Name" value={formData.name || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
             <Grid item xs={4}>
-              <TextField fullWidth label="Age" value={formData.age} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="Age" value={formData.age || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
             <Grid item xs={4}>
-              <TextField fullWidth label="Sex" value={formData.sex} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="Sex" value={formData.sex || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
             <Grid item xs={4}>
-              <TextField fullWidth label="Civil Status" value={formData.civilStatus} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="Civil Status" value={formData.civilStatus || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
             <Grid item xs={12}>
@@ -101,23 +111,23 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
             </Grid>
 
             <Grid item xs={4}>
-              <TextField fullWidth label="House No." value={formData.house_no} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="House No." value={formData.house_no || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
             <Grid item xs={8}>
-              <TextField fullWidth label="Street" value={formData.street} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="Street" value={formData.street || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
             <Grid item xs={6}>
-              <TextField fullWidth label="Barangay" value={formData.barangay} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="Barangay" value={formData.barangay || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
             <Grid item xs={6}>
-              <TextField fullWidth label="Municipality" value={formData.municipality} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="Municipality" value={formData.municipality || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
             <Grid item xs={12}>
-              <TextField fullWidth label="Province" value={formData.province} InputProps={{ readOnly: true }} />
+              <TextField fullWidth label="Province" value={formData.province || ''} InputProps={{ readOnly: true }} />
             </Grid>
 
           </Grid>

@@ -76,7 +76,7 @@ db.serialize(() => {
         user_name TEXT,
         sex TEXT,
         civil_status TEXT,
-
+        birthdate TEXT, 
         house_no TEXT,
         street TEXT,
         barangay TEXT,
@@ -108,6 +108,72 @@ db.serialize(() => {
         FOREIGN KEY (userid) REFERENCES user(userid)
       );
     `)
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS brgyid_req (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id TEXT UNIQUE,
+        userid INTEGER,
+        user_name TEXT,
+
+        house_no TEXT,
+        street TEXT,
+        barangay TEXT,
+        municipality TEXT,
+        province TEXT,
+
+        birthdate TEXT,
+        birthplace TEXT,
+        sex TEXT,
+
+        weight TEXT,
+        height TEXT,
+        blood_type TEXT,
+        contact_person TEXT,
+        contact_person_no TEXT,
+
+        created_at TEXT DEFAULT (DATETIME('now')),
+
+        FOREIGN KEY (userid) REFERENCES user(userid)
+      );
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS brgy_clearance_req (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id TEXT UNIQUE,
+        userid INTEGER,
+
+        user_name TEXT,
+        address TEXT,
+        age INTEGER,
+        sex TEXT,
+        civil_status TEXT,
+        birthdate TEXT,
+        birthplace TEXT,
+
+        purpose TEXT,
+        created_at TEXT,
+
+        FOREIGN KEY (userid) REFERENCES user(userid)
+      );
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS business_clearance_req (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id TEXT UNIQUE,
+        userid INTEGER,
+
+        user_name TEXT,
+        trade_name TEXT,
+        business_address TEXT,
+
+        created_at TEXT,
+
+        FOREIGN KEY (userid) REFERENCES user(userid)
+      );
+    `);
 });
 
 // ===================== HELPERS =====================
@@ -301,10 +367,10 @@ app.put("/api/user/:userid/profile", (req, res) => {
       user_name = ?,
       email_ad = ?,
       civil_status = ?,
-      sex = ?,
-      birthdate = ?,
-      birthplace = ?,
-      contact_no = ?,
+      sex = ?,                 
+      birthdate = ?,          
+      birthplace = ?,          
+      contact_no = ?,         
       isPWD = ?,
       isSenior = ?,
       barangay_id = ?,
@@ -325,10 +391,10 @@ app.put("/api/user/:userid/profile", (req, res) => {
       user_name,
       email_ad,
       civil_status,
-      contact_no,
-      sex,
-      birthdate,
-      birthplace,
+      sex,                 
+      birthdate,           
+      birthplace,         
+      contact_no,         
       isPWD,
       isSenior,
       barangay_id,
@@ -343,7 +409,10 @@ app.put("/api/user/:userid/profile", (req, res) => {
       userid
     ],
     function (err) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) {
+        console.error("Update error:", err.message);
+        return res.status(500).json({ error: err.message });
+      }
 
       if (this.changes === 0) {
         return res.status(404).json({ error: "User not found" });
@@ -506,13 +575,14 @@ app.post('/api/indigency/submit', (req, res) => {
 
     db.run(
       `INSERT INTO indig_req (
-        transaction_id, userid, user_name, sex, civil_status,
+        transaction_id, userid, user_name, birthdate, sex, civil_status,
         house_no, street, barangay, municipality, province, date_issued
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, // Added date_issued
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
       [
         transaction_id,
         userid,
         user.user_name,
+        user.birthdate, // <--- Add this from the user object
         user.sex,
         user.civil_status,
         user.house_no,
@@ -520,7 +590,7 @@ app.post('/api/indigency/submit', (req, res) => {
         user.barangay,
         user.municipality,
         user.province,
-        date_issued // Pass the generated date
+        date_issued
       ],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
@@ -539,13 +609,45 @@ app.post('/api/indigency/submit', (req, res) => {
   });
 });
 
+// ===================== UPDATE REQUEST STATUS =====================
+app.put('/api/requests/:req_id/status', (req, res) => {
+  const { req_id } = req.params;
+  const { status } = req.body;
+
+  const sql = `UPDATE request SET status = ? WHERE req_id = ?`;
+
+  db.run(sql, [status, req_id], function (err) {
+    if (err) {
+      console.error("Status update error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+
+    res.json({
+      message: `Status updated to ${status}`,
+      req_id,
+      status
+    });
+  });
+});
+
 app.get('/api/indigency/:transaction_id', (req, res) => {
   const sql = `SELECT * FROM indig_req WHERE transaction_id = ?`;
   
   db.get(sql, [req.params.transaction_id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ message: "Record not found" });
-    res.json(row);
+
+    // Use your existing calculateAge helper
+    const age = calculateAge(row.birthdate); 
+
+    res.json({
+      ...row,
+      age: age // Send the computed age to the frontend
+    });
   });
 });
 
@@ -559,11 +661,31 @@ app.get('/api/requests/all', (req, res) => {
       r.created_at,
 
       u.user_name,
-      t.trans_name
+      t.trans_name,
+
+      -- Barangay Clearance Data
+      bc.address,
+      bc.age,
+      bc.sex,
+      bc.civil_status,
+      bc.birthdate,
+      bc.birthplace,
+      bc.purpose,
+
+      bbc.trade_name,
+      bbc.business_address
+
 
     FROM request r
+
     LEFT JOIN user u ON r.userid = u.userid
     LEFT JOIN transactions t ON r.trans_id = t.trans_id
+
+    LEFT JOIN brgy_clearance_req bc 
+      ON r.transaction_id = bc.transaction_id
+
+    LEFT JOIN business_clearance_req bbc
+      ON r.transaction_id = bbc.transaction_id
 
     ORDER BY r.req_id DESC
   `;
@@ -573,6 +695,7 @@ app.get('/api/requests/all', (req, res) => {
       console.error("Fetch error:", err.message);
       return res.status(500).json({ error: err.message });
     }
+
     res.json(rows);
   });
 });
@@ -592,6 +715,270 @@ app.put('/api/requests/:req_id/status', (req, res) => {
     res.json({ message: `Status updated to ${status}`, status });
   });
 });
+
+app.get('/api/brgyid/:transaction_id', (req, res) => {
+  db.get(
+    `SELECT * FROM brgyid_req WHERE transaction_id = ?`,
+    [req.params.transaction_id],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!row) return res.status(404).json({ error: "Not found" });
+      res.json(row);
+    }
+  );
+});
+
+app.post('/api/brgyid/submit', (req, res) => {
+  const {
+    userid,
+    weight,
+    height,
+    blood_type,
+    contact_person,
+    contact_person_no
+  } = req.body;
+
+  // ================= VALIDATION =================
+  if (!userid) {
+    return res.status(400).json({ error: "User ID required" });
+  }
+
+  if (!weight || !height || !blood_type || !contact_person || !contact_person_no) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  // ================= GET USER =================
+  db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const transaction_id = `BID-${Date.now()}`;
+    const trans_id = 2; // ⚠️ MAKE SURE THIS MATCHES YOUR transactions TABLE
+
+    const created_at = new Date().toISOString();
+
+    // ================= INSERT BRGY ID =================
+    db.run(
+      `INSERT INTO brgyid_req (
+        transaction_id, userid,
+        user_name, birthdate, birthplace, sex,
+        house_no, street, barangay, municipality, province,
+        weight, height, blood_type,
+        contact_person, contact_person_no,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        transaction_id,
+        userid,
+        user.user_name,
+        user.birthdate,
+        user.birthplace,
+        user.sex,
+        user.house_no,
+        user.street,
+        user.barangay,
+        user.municipality,
+        user.province,
+        weight,
+        height,
+        blood_type,
+        contact_person,
+        contact_person_no,
+        created_at
+      ],
+      function (err) {
+        if (err) {
+          console.error("Insert error:", err.message);
+          return res.status(500).json({ error: err.message });
+        }
+
+        // ================= INSERT REQUEST =================
+        db.run(
+          `INSERT INTO request (transaction_id, trans_id, userid, status)
+           VALUES (?, ?, ?, 'pending')`,
+          [transaction_id, trans_id, userid],
+          function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+
+            res.json({
+              message: "Barangay ID request submitted successfully",
+              transaction_id
+            });
+          }
+        );
+      }
+    );
+  });
+});
+
+app.post('/api/brgy-clearance/submit', (req, res) => {
+  const { userid, purpose } = req.body;
+
+  if (!userid) {
+    return res.status(400).json({ error: "User ID required" });
+  }
+
+  if (!purpose) {
+    return res.status(400).json({ error: "Purpose is required" });
+  }
+
+  db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const transaction_id = `BRC-${Date.now()}`;
+    const trans_id = 3;
+    const created_at = new Date().toISOString();
+
+    const address = [
+      user.house_no,
+      user.street,
+      user.barangay,
+      user.municipality,
+      user.province
+    ].filter(Boolean).join(", ");
+
+    const age = calculateAge(user.birthdate);
+
+    db.run(
+      `INSERT INTO brgy_clearance_req (
+        transaction_id, userid,
+        user_name, address, age, sex, civil_status,
+        birthdate, birthplace,
+        purpose, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        transaction_id,
+        userid,
+        user.user_name,
+        address,
+        age,
+        user.sex,
+        user.civil_status,
+        user.birthdate,
+        user.birthplace,
+        purpose,
+        created_at
+      ],
+      function (err) {
+        if (err) {
+          console.error("Insert error:", err.message);
+          return res.status(500).json({ error: err.message });
+        }
+
+        db.run(
+          `INSERT INTO request (transaction_id, trans_id, userid, status)
+           VALUES (?, ?, ?, 'pending')`,
+          [transaction_id, trans_id, userid],
+          function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+
+            res.json({
+              message: "Barangay Clearance request submitted",
+              transaction_id
+            });
+          }
+        );
+      }
+    );
+  });
+});
+
+app.get('/api/clearance/:transaction_id', (req, res) => {
+  db.get(
+    `SELECT * FROM brgy_clearance_req WHERE transaction_id = ?`,
+    [req.params.transaction_id],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!row) return res.status(404).json({ error: "Clearance record not found" });
+
+      res.json(row);
+    }
+  );
+});
+
+
+app.post('/api/business-clearance/submit', (req, res) => {
+  const { userid, trade_name, business_address } = req.body;
+
+  // VALIDATION
+  if (!userid) {
+    return res.status(400).json({ error: "User ID required" });
+  }
+
+  if (!trade_name || !business_address) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  // GET USER
+  db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const transaction_id = `BBC-${Date.now()}`;
+    const trans_id = 4; //
+    const created_at = new Date().toISOString();
+
+    // INSERT BUSINESS CLEARANCE
+    db.run(
+      `INSERT INTO business_clearance_req (
+        transaction_id, userid,
+        user_name, trade_name, business_address,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        transaction_id,
+        userid,
+        user.user_name,
+        trade_name,
+        business_address,
+        created_at
+      ],
+      function (err) {
+        if (err) {
+          console.error("Insert error:", err.message);
+          return res.status(500).json({ error: err.message });
+        }
+
+        // INSERT REQUEST
+        db.run(
+          `INSERT INTO request (transaction_id, trans_id, userid, status)
+           VALUES (?, ?, ?, 'pending')`,
+          [transaction_id, trans_id, userid],
+          function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+
+            res.json({
+              message: "Business Clearance request submitted",
+              transaction_id
+            });
+          }
+        );
+      }
+    );
+  });
+});
+
+app.get('/api/business-clearance/:transaction_id', (req, res) => {
+  db.get(
+    `SELECT * FROM business_clearance_req WHERE transaction_id = ?`,
+    [req.params.transaction_id],
+    (err, row) => {
+      if (err) {
+        console.error("Fetch error:", err.message);
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (!row) {
+        return res.status(404).json({ error: "Business clearance not found" });
+      }
+
+      res.json(row);
+    }
+  );
+});
+
+
 
 // ===================== TRANSACTIONS =====================
 app.get('/api/transactions', (req, res) => {

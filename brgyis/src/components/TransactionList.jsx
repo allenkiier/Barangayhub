@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Grid, Paper, Box, Typography, ThemeProvider, createTheme, styled } from '@mui/material';
 
-// --- Modals ---
+// Modals
 import IndigencyRequest from '../modals/IndigencyRequest';
-// import BrgyIDRequest from '../modals/BrgyIDRequest';
+import BrgyIDRequest from '../modals/BrgyIDRequest';
+import BrgyClearanceRequest from '../modals/BrgyClearanceRequest'
+import BusinessClearanceRequest from '../modals/BusinessClearanceRequest';
 
-// --- Icons ---
+// Icons
 import DescriptionIcon from '@mui/icons-material/Description';
 import BadgeIcon from '@mui/icons-material/Badge';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -39,9 +41,9 @@ const SERVICE_CONFIG = {
 const TransactionList = () => {
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
-  
-  // Safe retrieval of userid
-  const currentUserId = localStorage.getItem("userid");
+
+  const userData = JSON.parse(localStorage.getItem("user"));
+  const currentUserId = userData?.userid;
 
   useEffect(() => {
     fetch('http://localhost:3001/api/transactions')
@@ -51,14 +53,19 @@ const TransactionList = () => {
   }, []);
 
   const handleCloseModal = () => setSelectedService(null);
+
   const getStyle = (name) => SERVICE_CONFIG[name] || { icon: <EditDocumentIcon />, color: '#607d8b' };
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ p: 4}}>
+      <Box sx={{ p: 4 }}>
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#1a237e' }}>Barangay E-Services</Typography>
-          <Typography variant="body1">Select a service below. Forms are auto-filled via your profile.</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#1a237e' }}>
+            Barangay E-Services
+          </Typography>
+          <Typography variant="body1">
+            Select a service below. Forms are auto-filled via your profile.
+          </Typography>
         </Box>
 
         <Grid container spacing={3}>
@@ -66,33 +73,50 @@ const TransactionList = () => {
             const { icon, color } = getStyle(svc.trans_name);
             return (
               <Grid item key={svc.trans_id} xs={12} sm={6} md={4} lg={3}>
-                <ServiceCard bgcolor={color} elevation={3} onClick={() => setSelectedService(svc.trans_name)}>
+                <ServiceCard
+                  bgcolor={color}
+                  elevation={3}
+                  onClick={() => setSelectedService(svc.trans_name)}
+                >
                   <Box sx={{ fontSize: '2.5rem', display: 'flex' }}>{icon}</Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{svc.trans_name}</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    {svc.trans_name}
+                  </Typography>
                 </ServiceCard>
               </Grid>
             );
           })}
         </Grid>
 
-        {/* Indigency Modal */}
-        <IndigencyRequest 
-          open={selectedService === 'Certificate of Indigency'} 
+        {/* Modals */}
+        <IndigencyRequest
+          open={selectedService === 'Certificate of Indigency'}
           onClose={handleCloseModal}
-          serviceName="Certificate of Indigency"
           userId={currentUserId}
         />
 
-        {/* Brgy ID Modal - Ensure you apply the same Select fixes here! */}
-        {/* <BrgyIDRequest
-          open={selectedService === 'Barangay ID Form'} 
+        <BrgyIDRequest
+          open={selectedService === 'Barangay ID Form'}
           onClose={handleCloseModal}
-          serviceName="Barangay ID Form"
           userId={currentUserId}
-        /> */}
+        />
+
+        <BrgyClearanceRequest
+          open={selectedService === 'Barangay Clearance'}
+          onClose={handleCloseModal}
+          userId={currentUserId}
+        />
+
+          <BusinessClearanceRequest
+            open={selectedService === 'Barangay Business Clearance'}
+            onClose={handleCloseModal}
+            userId={currentUserId}
+          />
 
         {services.length === 0 && (
-          <Typography sx={{ mt: 4, fontStyle: 'italic', color: 'gray' }}>Loading services...</Typography>
+          <Typography sx={{ mt: 4, fontStyle: 'italic', color: 'gray' }}>
+            Loading services...
+          </Typography>
         )}
       </Box>
     </ThemeProvider>

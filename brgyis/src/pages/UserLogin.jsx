@@ -45,27 +45,29 @@ export default function UserLogin() {
 
       const data = await response.json();
 
+      console.log("🔥 LOGIN RESPONSE:", data); // DEBUG
+
       if (!response.ok) {
         alert(data.error || "Login failed");
         return;
       }
 
-      // Save session
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          userid: data.userid,
-          token: data.token,
-          isAdmin: data.isAdmin,
-        })
-      );
+      // ✅ STORE USER PROPERLY
+      localStorage.setItem("user", JSON.stringify(data));
 
-      // Redirect based on role
+      // ✅ ALSO STORE USERID SEPARATELY (IMPORTANT)
+      localStorage.setItem("userid", data.userid);
+
+      // Optional (for debugging)
+      console.log("✅ Stored userid:", localStorage.getItem("userid"));
+
+      // Redirect
       if (data.isAdmin) {
         navigate("/admin-dash");
       } else {
         navigate("/user-dash");
       }
+
     } catch (err) {
       console.error(err);
       alert("Server error during login");
