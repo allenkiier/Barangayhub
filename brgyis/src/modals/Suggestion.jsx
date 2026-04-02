@@ -32,7 +32,8 @@ const Suggestion = ({ open, onClose }) => {
         body: JSON.stringify({
           sender,
           contact_num: contactNum,
-          narrative
+          narrative,
+          type: "suggestion"
         })
       });
 

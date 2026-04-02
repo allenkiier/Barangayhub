@@ -25,8 +25,15 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
 db.run(`PRAGMA foreign_keys = ON`);
 
+
+
 // ===================== TABLES =====================
 db.serialize(() => {
+  const transactions = ['Indigency', 'Barangay ID', 'Barangay Clearance', 'Business Clearance', 'Incident Report'];
+  transactions.forEach((name, index) => {
+    db.run(`INSERT OR IGNORE INTO transactions (trans_id, trans_name) VALUES (?, ?)`, [index + 1, name]);
+  });
+
   db.run(`
     CREATE TABLE IF NOT EXISTS user (
       userid INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -203,7 +210,8 @@ db.serialize(() => {
         sender TEXT,
         contact_num TEXT,
         narrative TEXT NOT NULL,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        type TEXT NOT NULL
       );
     `);
   });
@@ -217,6 +225,19 @@ const calculateAge = (birthdate) => {
   const m = today.getMonth() - birthDate.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
   return age;
+};
+
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, SECRET_KEY, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
 };
 
 // ===================== LOGIN =====================
@@ -312,6 +333,7 @@ app.post('/api/signup', (req, res) => {
 
 // ===================== ADMIN REQUESTS =====================
 app.get('/api/admin/requests', (req, res) => {
+  if (!req.user.isAdmin) return res.status(403).json({ error: "Admin only" });
   db.all(
     `SELECT userid, user_name, email_ad, admin_status
      FROM user
@@ -324,18 +346,14 @@ app.get('/api/admin/requests', (req, res) => {
   );
 });
 
-app.post('/api/admin/approve/:id', (req, res) => {
+app.post('/api/admin/approve/:id', authenticateToken, (req, res) => {
+  if (!req.user.isAdmin) return res.status(403).json({ error: "Unauthorized" });
+  
   const userId = req.params.id;
-
-  db.run(
-    `UPDATE user SET isAdmin = 1, admin_status = 'approved' WHERE userid = ?`,
-    [userId],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-
-      res.json({ message: 'User approved as admin' });
-    }
-  );
+  db.run(`UPDATE user SET isAdmin = 1, admin_status = 'approved' WHERE userid = ?`, [userId], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'User approved as admin' });
+  });
 });
 
 app.post('/api/admin/reject/:id', (req, res) => {
@@ -678,7 +696,7 @@ app.get('/api/indigency/:transaction_id', (req, res) => {
 
     res.json({
       ...row,
-      age: age // Send the computed age to the frontend
+      age: age
     });
   });
 });
@@ -1097,11 +1115,11 @@ app.post("/api/suggestions", (req, res) => {
 
     // Step 2: Insert with new ID
     const insertQuery = `
-      INSERT INTO open_message (open_mess_id, sender, contact_num, narrative)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO open_message (open_mess_id, sender, contact_num, narrative, type)
+      VALUES (?, ?, ?, ?, ?)
     `;
 
-    db.run(insertQuery, [newId, sender, contact_num, narrative], function (err) {
+    db.run(insertQuery, [newId, sender, contact_num, narrative, "suggestion"], function (err) {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: "Failed to save suggestion" });
@@ -1117,18 +1135,22 @@ app.post("/api/suggestions", (req, res) => {
 
 // GET all open messages
 app.get("/api/open-messages", (req, res) => {
-  const sql = `
-    SELECT open_mess_id, sender, contact_num, narrative, created_at
-    FROM open_message
-    ORDER BY created_at DESC
-  `;
+  const { type } = req.query; // Extract type from query parameters
+  let sql = `SELECT * FROM open_message`; // Use 'let' so we can append to it
+  const params = [];
 
-  db.all(sql, [], (err, rows) => {
+  if (type) {
+    sql += " WHERE type = ?";
+    params.push(type);
+  }
+
+  sql += " ORDER BY created_at DESC";
+
+  db.all(sql, params, (err, rows) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: "Failed to fetch messages" });
     }
-
     res.json(rows);
   });
 });
@@ -1154,40 +1176,39 @@ app.post("/api/complaints", (req, res) => {
   const { sender, contact_num, narrative } = req.body;
 
   if (!narrative) {
-    return res.status(400).json({ error: "Complaint is required" });
+    return res.status(400).json({ error: "Complaint text is required" });
   }
 
-  // Get latest COM- ID only
   const getLastIdQuery = `
-    SELECT open_mess_id FROM open_message
-    WHERE open_mess_id LIKE 'COM-%'
-    ORDER BY created_at DESC
+    SELECT open_mess_id FROM open_message 
+    WHERE open_mess_id LIKE 'COM-%' 
+    ORDER BY open_mess_id DESC 
     LIMIT 1
   `;
 
   db.get(getLastIdQuery, [], (err, row) => {
     if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Failed to generate ID" });
+      console.error("ID Generation Error:", err);
+      return res.status(500).json({ error: "Internal server error" });
     }
 
     let newId = "COM-00001";
 
     if (row && row.open_mess_id) {
-      const lastNumber = parseInt(row.open_mess_id.split("-")[1]);
-      const nextNumber = lastNumber + 1;
-      newId = "COM-" + String(nextNumber).padStart(5, "0");
+      const lastParts = row.open_mess_id.split("-");
+      const lastNum = parseInt(lastParts[1], 10);
+      newId = `COM-${String(lastNum + 1).padStart(5, '0')}`;
     }
 
     const insertQuery = `
-      INSERT INTO open_message (open_mess_id, sender, contact_num, narrative)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO open_message (open_mess_id, sender, contact_num, narrative, type)
+      VALUES (?, ?, ?, ?, 'complaint')
     `;
 
     db.run(insertQuery, [newId, sender, contact_num, narrative], function (err) {
       if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "Failed to save complaint" });
+        console.error("Insert Error:", err);
+        return res.status(500).json({ error: "Failed to submit complaint" });
       }
 
       res.json({
@@ -1198,6 +1219,33 @@ app.post("/api/complaints", (req, res) => {
   });
 });
 
+
+// ===================== GET USER REQUESTS =====================
+app.get('/api/requests/user/:userid', (req, res) => {
+  const { userid } = req.params;
+
+  const query = `
+    SELECT 
+      r.req_id,
+      r.transaction_id,
+      r.status,
+      r.created_at,
+      t.trans_name
+    FROM request r
+    LEFT JOIN transactions t ON r.trans_id = t.trans_id
+    WHERE r.userid = ?
+    ORDER BY r.created_at DESC
+  `;
+
+  db.all(query, [userid], (err, rows) => {
+    if (err) {
+      console.error("Fetch user requests error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    res.json(rows);
+  });
+});
 
 // ===================== START SERVER =====================
 app.listen(PORT, () => {

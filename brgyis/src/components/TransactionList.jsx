@@ -22,7 +22,7 @@ import EditDocumentIcon from '@mui/icons-material/EditDocument';
 const ServiceCard = styled(Paper)(({ bgcolor }) => ({
   width: '100%', 
   maxWidth: 250, 
-  height: 95, 
+  height: 70, 
   padding: 15, 
   color: '#fff',
   background: bgcolor, 
@@ -90,22 +90,14 @@ const TransactionList = () => {
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ p: 4 }}>
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#1a237e' }}>
-            Barangay E-Services
-          </Typography>
-          <Typography variant="body1">
-            Select a service below. Forms are auto-filled via your profile.
-          </Typography>
-        </Box>
 
         {loading ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <CircularProgress size={24} />
             <Typography>Loading available services...</Typography>
           </Box>
         ) : (
-          <Grid container spacing={3}>
+          <Grid container spacing={6} justifyContent={services.length === 1 ? 'center' : 'flex-start'} justifyItems={"start"}>
             {services.map((svc) => {
               const { icon, color } = getStyle(svc.trans_name);
               return (

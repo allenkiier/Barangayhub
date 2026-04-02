@@ -1,48 +1,51 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
 import AdminSideBar from '../components/AdminSideBar';
 import OpenMessages from '../components/OpenMesssages';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate(); // 2. Initialize navigate
   const [greeting, setGreeting] = useState('');
-    const [username, setUsername] = useState('');
-  
-    useEffect(() => {
-      // ✅ Greeting logic
-      const hour = new Date().getHours();
-      setGreeting(
-        hour < 12
-          ? 'Good Morning'
-          : hour < 18
-          ? 'Good Afternoon'
-          : 'Good Evening'
-      );
-  
-      // ✅ Get user from localStorage safely
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-  
-      if (!storedUser?.userid) {
-        console.error("No user found in localStorage");
-        setUsername("Guest");
-        return;
-      }
-  
-      // ✅ Fetch correct username from backend
-      fetch(`http://localhost:3001/api/user/${storedUser.userid}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch user");
-          return res.json();
-        })
-        .then((data) => {
-          // 🔥 This matches backend: { username: row.user_name }
-          setUsername(data.user_name);
-        })
-        .catch((err) => {
-          console.error("Fetch error:", err);
-          setUsername("Guest"); // fallback only if API fails
-        });
-  
-    }, []);
-  
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    // ✅ 3. CHECK-ON-MOUNT (Security Guard + Role Check)
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+
+    // Check if user exists AND if they are actually an admin
+    if (!storedUser || !storedUser.userid) {
+      navigate("/", { replace: true });
+      return;
+    }
+
+    if (!storedUser.isAdmin) {
+      // If a regular user tries to access this, boot them to the user dash
+      navigate("/user-dash", { replace: true });
+      return;
+    }
+
+    // ✅ Greeting logic
+    const hour = new Date().getHours();
+    setGreeting(
+      hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
+    );
+
+    // ✅ Fetch correct username from backend
+    fetch(`http://localhost:3001/api/user/${storedUser.userid}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch user");
+        return res.json();
+      })
+      .then((data) => {
+        setUsername(data.user_name);
+      })
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        setUsername("Admin"); 
+      });
+
+  }, [navigate]);
+
   return (
     <div className="main-dash">
       <AdminSideBar />
@@ -58,18 +61,19 @@ const AdminDashboard = () => {
             <div id='side-head'>
               <div style={{ textAlign: "right" }}>
                 <h5>{greeting}</h5>
-                <h5>{username}</h5>
+                <h5>{username || "Loading..." }</h5>
               </div>
             </div>
           </div>
 
           <br />
-          <h1>Admin Dashboard</h1> <br />
+          <h1>Admin Dashboard</h1> 
+          <br />
+          <OpenMessages />
         </div>
-        <OpenMessages />
       </div>
     </div>
   );
 }
 
-export default AdminDashboard
+export default AdminDashboard;

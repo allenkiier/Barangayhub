@@ -32,7 +32,8 @@ const Complaints = ({ open, onClose }) => {
         body: JSON.stringify({
           sender: sender || null,
           contact_num: contactNum || null,
-          narrative
+          narrative,
+          type: "complaint"
         })
       });
 

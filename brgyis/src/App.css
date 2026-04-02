@@ -107,16 +107,15 @@ a, Link{
   transform: translateX(0);
 }
 
-.main-dash{
-  height: 99vh;
+.main-dash, .request-container{
+  height: 90vh;
   width: 99.7vw;
   display: flex;
   flex-direction: row;
   justify-content: start;
-  border: 2px solid green;
 }
 
-.dashCont{
+.dashCont, .request-cont{
   padding: 25px 0 20px 100px;
 }
 
@@ -149,3 +148,56 @@ a, Link{
     justify-content: center;
     flex-wrap: wrap;
   }
+
+ .user-page, .profile-page  {
+  display: flex;
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: #020024;
+  background: linear-gradient(32deg,rgba(2, 0, 36, 1) 0%, rgba(9, 9, 121, 1) 84%, rgba(84, 84, 240, 1) 100%);
+  overflow: hidden; /* Keeps the circle from causing scrollbars */
+  z-index: 0;
+}
+
+ .user-page::before {
+  content: "";
+  position: absolute;
+  width: 115%;
+  height: 157%;
+  background-color: #e5e5e8; /* The Light Grey/White */
+  border-radius: 50%;
+  
+  /* Positioning the "overlap" */
+  bottom: -70%;
+  left: -50%;
+
+  z-index: -1; /* Pushes the circle BEHIND the text */
+  pointer-events: none;
+
+  box-shadow: 
+    inset -15px 25px 50px rgba(0, 0, 0, 0.25),
+    inset 5px -5px 30px rgba(255, 255, 255, 0.4); 
+  filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.3));
+}
+
+.profile-page::before {
+  content: "";
+  position: absolute;
+  width: 145%;
+  height: 157%;
+  background-color: #e5e5e8; /* The Light Grey/White */
+  border-radius: 50%;
+  
+  /* Positioning the "overlap" */
+  bottom: 5%;
+  left: -40%;
+
+  z-index: -1; /* Pushes the circle BEHIND the text */
+  pointer-events: none;
+
+  box-shadow: 
+    inset -15px 25px 50px rgba(0, 0, 0, 0.25),
+    inset 5px -5px 30px rgba(255, 255, 255, 0.4); 
+  filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.3));
+}
