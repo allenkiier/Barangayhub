@@ -11,6 +11,7 @@ import UserViewCouncil from './pages/UserViewCouncil';
 import AdminTransaction from './pages/AdminTransaction';
 import Admission from './pages/Admission';
 import UserRequest from './pages/UserRequest';
+import UserRecords from './pages/UserRecords';
 
 // --- The Protected Route Wrapper ---
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -51,7 +52,8 @@ function App() {
           <Route path="/council" element={<ProtectedRoute adminOnly={true}><Council /></ProtectedRoute>} />
           <Route path="/transaction-history" element={<ProtectedRoute adminOnly={true}><AdminTransaction /></ProtectedRoute>} />
           <Route path="/adminAdmit" element={<ProtectedRoute adminOnly={true}><Admission /></ProtectedRoute>} />
-          
+          <Route path="/userRecords" element={<ProtectedRoute adminOnly={true}><UserRecords /></ProtectedRoute>} />
+
           {/* Catch-all: Redirect unknown URLs to login */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

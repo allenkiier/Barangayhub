@@ -14,7 +14,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import Groups2Icon from '@mui/icons-material/Groups2';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber'; // Extra warning icon
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'; 
+import AttributionIcon from '@mui/icons-material/Attribution';
 
 const AdminSideBar = () => {
   const navigate = useNavigate();
@@ -57,6 +58,11 @@ const AdminSideBar = () => {
                 <Link to="/adminAdmit" className="side-item">
                     <AdminPanelSettingsIcon/>
                     <span>Admin Admission</span>
+                </Link>
+
+                <Link to="/userRecords" className="side-item">
+                    <AttributionIcon/>
+                    <span>User Records</span>
                 </Link>
             </div>
 

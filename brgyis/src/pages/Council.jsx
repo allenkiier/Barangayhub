@@ -10,8 +10,6 @@ import {
   FormControlLabel,
   MenuItem,
   Grid,
-  Card,
-  CardContent,
   Table,
   TableBody,
   TableCell,
@@ -20,8 +18,15 @@ import {
   TableRow,
   Paper,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from "@mui/material";
+
 import OrganizationalChart from "../components/OrganizationalChart";
 import AdminSideBar from "../components/AdminSideBar";
 
@@ -39,44 +44,65 @@ const Council = () => {
     is_active: true,
   });
 
-  // Fetch all necessary data
+  // ✅ Snackbar
+  const [snack, setSnack] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
+
+  const showSnack = (message, severity = "success") => {
+    setSnack({ open: true, message, severity });
+  };
+
+  const handleCloseSnack = () => {
+    setSnack({ ...snack, open: false });
+  };
+
+  // ✅ Confirm Delete Dialog
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState(null);
+
+  const handleDeleteClick = (id) => {
+    setSelectedDeleteId(id);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      await axios.delete(`http://localhost:3001/api/council/delete/${selectedDeleteId}`);
+      showSnack("Deleted successfully");
+      setRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      showSnack(err.response?.data?.error || "Delete failed", "error");
+    } finally {
+      setConfirmOpen(false);
+      setSelectedDeleteId(null);
+    }
+  };
+
+  // ✅ Fetch Data
   const fetchAllData = async () => {
     try {
       const [adminRes, councilRes] = await Promise.all([
         axios.get("http://localhost:3001/api/users/admins"),
-        axios.get("http://localhost:3001/api/council/all") 
+        axios.get("http://localhost:3001/api/council/all")
       ]);
+
       setAdmins(adminRes.data || []);
       setCouncilMembers(councilRes.data || []);
     } catch (err) {
-      console.error("Error fetching data:", err);
+      showSnack("Failed to load data", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this member?");
-  if (!confirmDelete) return;
-
-  try {
-    await axios.delete(`http://localhost:3001/api/council/delete/${id}`);
-
-    alert("Deleted successfully!");
-
-    // refresh table
-    setRefreshTrigger(prev => prev + 1);
-
-  } catch (err) {
-    console.error(err);
-    alert(err.response?.data?.error || "Delete failed");
-  }
-};
-
   useEffect(() => {
     fetchAllData();
-  }, [refreshTrigger]);
+  }, );
 
+  // ✅ Select User
   const handleUserChange = (e) => {
     const userId = Number(e.target.value);
     const user = admins.find((u) => Number(u.userid) === userId);
@@ -90,6 +116,7 @@ const Council = () => {
     }));
   };
 
+  // ✅ Input Change
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -98,6 +125,7 @@ const Council = () => {
     }));
   };
 
+  // ✅ Add Member
   const handleSubmit = async () => {
     try {
       await axios.post("http://localhost:3001/api/council/add", {
@@ -105,29 +133,36 @@ const Council = () => {
         is_active: formData.is_active ? 1 : 0,
       });
 
-      alert("Council member added successfully!");
+      showSnack("Council member added successfully");
+
       setFormData({ userid: "", name: "", role: "", is_active: true });
       setSelectedUser("");
-      setRefreshTrigger(prev => prev + 1); 
+      setRefreshTrigger(prev => prev + 1);
+
     } catch (err) {
-      alert(err.response?.data?.error || "Error adding member");
+      showSnack(err.response?.data?.error || "Error adding member", "error");
     }
   };
 
+  // ✅ Toggle Status
   const toggleStatus = async (id, currentStatus) => {
     try {
       const newStatus = currentStatus === 1 ? 0 : 1;
-      await axios.put(`http://localhost:3001/api/council/update-status/${id}`, {
-        is_active: newStatus
-      });
-      setRefreshTrigger(prev => prev + 1); 
+
+      await axios.put(
+        `http://localhost:3001/api/council/update-status/${id}`,
+        { is_active: newStatus }
+      );
+
+      showSnack("Status updated");
+      setRefreshTrigger(prev => prev + 1);
+
     } catch (err) {
-      console.error(err);
-      alert("Failed to update status");
+      showSnack("Failed to update status", "error");
     }
   };
 
-  // Handle Loading State
+  // ✅ Loading UI
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -138,156 +173,128 @@ const Council = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', pl: 20}}>
+    <Box sx={{ display: 'flex', pl: 20 }}>
       <AdminSideBar />
+
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <OrganizationalChart key={refreshTrigger} />
 
         <Container fullWidth>
-          <Grid container spacing={4} sx={{display: "flex", flexDirection: "column"}}>
-            
-            {/* Admission Form Section */}
-            <Grid item xs={12} sx={{ p: 2, width: "100%"}}>
-              <Box
-                sx={{
-                  width: "100%",      
-                  ml: "auto",
+          <Grid container spacing={4} sx={{ display: "flex", flexDirection: "column" }}>
 
-                }}
-              >
-                <Card
-                  elevation={0}      
-                  sx={{
-                    backgroundColor: "transparent", // 🔥 invisible background
-                    boxShadow: "none"                // 🔥 no shadow at all
-                  }}
-                >
-                  <CardContent sx={{ p: 0 }}> {/* optional: remove padding */}
-                    <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: "#060745" }}>
-                      Council Admission
-                    </Typography>
-
-                    <Grid container spacing={2} sx={{display: "flex", flexDirection: "column"}}>
-                      <Grid item xs={12}>
-                        <TextField
-                          select sx={{width: "70%"}} label="Select Admin User"
-                          value={selectedUser} onChange={handleUserChange}
-                        >
-                          {admins.map((user) => (
-                            <MenuItem key={user.userid} value={user.userid}>
-                              {user.user_name} ({user.email_ad})
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                      <Grid item xs={12} sx={{display: "flex", flexDirection: "row", justifyContent: "flex-start", alignItems: "center", gap: 2}}>
-                        <TextField
-                          sx={{width: "30%"}} 
-                          label="User ID"
-                          value={formData.userid}
-                          slotProps={{ input: { readOnly: true } }}
-                        />
-                        <TextField
-                          sx={{width: "40%"}}
-                          label="Name"
-                          value={formData.name}
-                          slotProps={{ input: { readOnly: true } }}
-                        />
-                         <TextField
-                          select sx={{width: "30%"}} label="Role" name="role"
-                            value={formData.role} onChange={handleChange}>
-                            <MenuItem value="Punong Barangay">Punong Barangay</MenuItem>
-                            <MenuItem value="SB Member">SB Member</MenuItem>
-                            <MenuItem value="SK Chairman">SK Chairman</MenuItem>
-                            <MenuItem value="Barangay Secretary">Barangay Secretary</MenuItem>
-                            <MenuItem value="Barangay Treasurer">Barangay Treasurer</MenuItem>
-                            <MenuItem value="Barangay Clerk">Barangay Clerk</MenuItem>
-                        </TextField>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={formData.is_active}
-                              onChange={handleChange}
-                              name="is_active"
-                            />
-                          }
-                          label="Active"
-                        />
-                      </Grid> 
-                      <Grid item xs={12}>
-                        <Button
-                          variant="contained"
-                          fullWidth
-                          size="large"
-                          sx={{backgroundColor: "#060745", color: "white"}}
-                          onClick={handleSubmit}
-                          disabled={!formData.userid || !formData.role}
-                        >
-                          Add to Council
-                        </Button>
-                      </Grid>
-                    </Grid>
-                  </CardContent>
-                </Card>
-              </Box>
-            </Grid>
-            {/* Management Table Section */}
+            {/* FORM */}
             <Grid item xs={12}>
-              <Typography variant="h5" gutterBottom sx={{ mt: 2, fontWeight: 'bold', color: "#060745"}}>
-                Council Member List & Status
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: "#060745" }}>
+                Council Admission
               </Typography>
-              <TableContainer component={Paper} elevation={2}  fullWidth p={5}>
+
+              <Grid container spacing={2} direction="column">
+
+                <TextField
+                  select
+                  label="Select Admin User"
+                  value={selectedUser}
+                  onChange={handleUserChange}
+                  sx={{ width: "70%" }}
+                >
+                  {admins.map((user) => (
+                    <MenuItem key={user.userid} value={user.userid}>
+                      {user.user_name} ({user.email_ad})
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <TextField sx={{width: "10%"}} label="User ID" value={formData.userid} InputProps={{ readOnly: true }} />
+                  <TextField sx={{width: "20%"}} label="Name" value={formData.name} InputProps={{ readOnly: true }} />
+
+                  <TextField
+                    select
+                    sx={{width: "40%"}}
+                    label="Role"
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                  >
+                    <MenuItem value="Punong Barangay">Punong Barangay</MenuItem>
+                    <MenuItem value="SB Member">SB Member</MenuItem>
+                    <MenuItem value="SK Chairman">SK Chairman</MenuItem>
+                    <MenuItem value="Barangay Secretary">Barangay Secretary</MenuItem>
+                    <MenuItem value="Barangay Treasurer">Barangay Treasurer</MenuItem>
+                    <MenuItem value="Barangay Clerk">Barangay Clerk</MenuItem>
+                  </TextField>
+
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.is_active}
+                        onChange={handleChange}
+                        name="is_active"
+                      />
+                    }
+                    label="Active"
+                  />
+                </Box>
+
+                <Button
+                  variant="contained"
+                  sx={{ backgroundColor: "#060745" }}
+                  onClick={handleSubmit}
+                  disabled={!formData.userid || !formData.role}
+                >
+                  Add to Council
+                </Button>
+              </Grid>
+            </Grid>
+
+            {/* TABLE */}
+            <Grid item xs={12}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', color: "#060745" }}>
+                Council Member List
+              </Typography>
+
+              <TableContainer component={Paper}>
                 <Table>
-                  <TableHead sx={{ bgcolor: '#f5f5f5' }}>
+                  <TableHead>
                     <TableRow>
-                      <TableCell><strong>Name</strong></TableCell>
-                      <TableCell><strong>Role</strong></TableCell>
-                      <TableCell align="center"><strong>Status</strong></TableCell>
-                      <TableCell align="right"><strong>Action</strong></TableCell>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Role</TableCell>
+                      <TableCell align="center">Status</TableCell>
+                      <TableCell align="right">Action</TableCell>
                     </TableRow>
                   </TableHead>
-                  <TableBody>
-                    {councilMembers.length > 0 ? (
-                      councilMembers.map((m) => (
-                        <TableRow key={m.council_id} sx={{ '&:hover': { backgroundColor: 'lightgray' }, p: 1}}>
-                          <TableCell>{m.name}</TableCell>
-                          <TableCell>{m.role}</TableCell>
-                          <TableCell align="center">
-                            <Chip 
-                              label={m.is_active ? "Active" : "Inactive"} 
-                              color={m.is_active ? "success" : "default"}
-                              variant={m.is_active ? "filled" : "outlined"}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                                <Button 
-                                  variant="outlined"
-                                  size="small"
-                                  color={m.is_active ? "error" : "primary"}
-                                  onClick={() => toggleStatus(m.council_id, m.is_active)}
-                                >
-                                  {m.is_active ? "Deactivate" : "Activate"}
-                                </Button>
 
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleDelete(m.council_id)}
-                                >
-                                  Delete
-                                </Button>
-                              </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center">No records found.</TableCell>
+                  <TableBody>
+                    {councilMembers.map((m) => (
+                      <TableRow key={m.council_id}>
+                        <TableCell>{m.name}</TableCell>
+                        <TableCell>{m.role}</TableCell>
+
+                        <TableCell align="center">
+                          <Chip
+                            label={m.is_active ? "Active" : "Inactive"}
+                            color={m.is_active ? "success" : "default"}
+                          />
+                        </TableCell>
+
+                        <TableCell align="right">
+                          <Button
+                            size="small"
+                            onClick={() => toggleStatus(m.council_id, m.is_active)}
+                          >
+                            {m.is_active ? "Deactivate" : "Activate"}
+                          </Button>
+
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteClick(m.council_id)}
+                          >
+                            Delete
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -296,6 +303,34 @@ const Council = () => {
           </Grid>
         </Container>
       </Box>
+
+      {/* ✅ CONFIRM DELETE DIALOG */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this council member?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ✅ SNACKBAR */}
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={3000}
+        onClose={handleCloseSnack}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity={snack.severity} variant="filled" onClose={handleCloseSnack}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

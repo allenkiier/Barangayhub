@@ -7,6 +7,11 @@ import {
   Avatar,
   IconButton,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button
 } from "@mui/material";
 
 import CheckIcon from "@mui/icons-material/Check";
@@ -16,7 +21,12 @@ import PersonIcon from "@mui/icons-material/Person";
 const AdminRequest = () => {
   const [requests, setRequests] = useState([]);
 
-  // ================= FETCH REQUESTS =================
+  // ✅ CONFIRM STATE
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [actionType, setActionType] = useState(""); // approve or reject
+  const [selectedId, setSelectedId] = useState(null);
+
+  // ================= FETCH =================
   const fetchRequests = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -28,10 +38,7 @@ const AdminRequest = () => {
       });
 
       const text = await res.text();
-
-      if (!res.ok) {
-        throw new Error(text);
-      }
+      if (!res.ok) throw new Error(text);
 
       const data = text ? JSON.parse(text) : [];
       setRequests(data);
@@ -40,62 +47,44 @@ const AdminRequest = () => {
     }
   };
 
-  // ================= LOAD ONCE =================
   useEffect(() => {
     fetchRequests();
-  }, []); // ✅ FIXED (no infinite loop)
+  }, []);
 
-  // ================= APPROVE =================
-  const handleApprove = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(
-        `http://localhost:3001/api/admin/approve/${id}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const text = await res.text();
-
-      if (!res.ok) {
-        throw new Error(text);
-      }
-
-      await fetchRequests(); // refresh list
-    } catch (err) {
-      console.error("Approve error:", err.message);
-    }
+  // ================= OPEN CONFIRM =================
+  const handleOpenConfirm = (id, type) => {
+    setSelectedId(id);
+    setActionType(type);
+    setConfirmOpen(true);
   };
 
-  // ================= REJECT =================
-  const handleReject = async (id) => {
+  // ================= CONFIRM ACTION =================
+  const handleConfirm = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `http://localhost:3001/api/admin/reject/${id}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const endpoint =
+        actionType === "approve"
+          ? `/api/admin/approve/${selectedId}`
+          : `/api/admin/reject/${selectedId}`;
+
+      const res = await fetch(`http://localhost:3001${endpoint}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const text = await res.text();
+      if (!res.ok) throw new Error(text);
 
-      if (!res.ok) {
-        throw new Error(text);
-      }
-
-      await fetchRequests(); // refresh list
+      await fetchRequests();
     } catch (err) {
-      console.error("Reject error:", err.message);
+      console.error(`${actionType} error:`, err.message);
+    } finally {
+      setConfirmOpen(false);
+      setSelectedId(null);
+      setActionType("");
     }
   };
 
@@ -122,7 +111,7 @@ const AdminRequest = () => {
                   justifyContent: "space-between",
                 }}
               >
-                {/* LEFT SIDE */}
+                {/* LEFT */}
                 <Box display="flex" alignItems="center" gap={2}>
                   <Avatar>
                     <PersonIcon />
@@ -138,18 +127,18 @@ const AdminRequest = () => {
                   </Box>
                 </Box>
 
-                {/* RIGHT SIDE */}
+                {/* RIGHT */}
                 <Box>
                   <IconButton
                     color="success"
-                    onClick={() => handleApprove(req.userid)}
+                    onClick={() => handleOpenConfirm(req.userid, "approve")}
                   >
                     <CheckIcon />
                   </IconButton>
 
                   <IconButton
                     color="error"
-                    onClick={() => handleReject(req.userid)}
+                    onClick={() => handleOpenConfirm(req.userid, "reject")}
                   >
                     <CloseIcon />
                   </IconButton>
@@ -159,6 +148,33 @@ const AdminRequest = () => {
           )}
         </Stack>
       </Box>
+
+      {/* ✅ CONFIRM DIALOG */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>
+          {actionType === "approve" ? "Approve Request" : "Reject Request"}
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to{" "}
+            <b>{actionType}</b> this admission request?
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color={actionType === "approve" ? "success" : "error"}
+            onClick={handleConfirm}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

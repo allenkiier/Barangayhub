@@ -5,12 +5,14 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Grid,
   Box,
   Button,
   Typography,
   IconButton
 } from "@mui/material";
+
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import PrintIcon from "@mui/icons-material/Print";
@@ -26,10 +28,13 @@ import IncidentReport from "../certificates/IncidentReport";
 const RequestView = ({ open, onClose, request }) => {
   const [status, setStatus] = useState("pending");
   const [loading, setLoading] = useState(false);
-  const [officials, setOfficials] = useState([]); 
+  const [officials, setOfficials] = useState([]);
+
+  // ✅ CONFIRM DELETE STATE
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
   const contentRef = useRef(null);
 
-  // ✅ Template Mapping
   const templateMap = {
     1: CertificateOfIndigency,
     2: BarangayIDApplication,
@@ -40,27 +45,19 @@ const RequestView = ({ open, onClose, request }) => {
 
   const TemplateComponent = request ? templateMap[request.trans_id] : null;
 
-  // ✅ Fetch Active Officials and Sync Status
   useEffect(() => {
     if (open) {
-      // 1. Sync local status with the incoming request status
       if (request) {
         setStatus(request.status);
       }
 
-      // 2. Fetch the active council members for the signatures
-      fetch('http://localhost:3001/api/council/active-officials')
+      fetch("http://localhost:3001/api/council/active-officials")
         .then((res) => res.json())
-        .then((data) => {
-          setOfficials(data);
-        })
-        .catch((err) => {
-          console.error("Error fetching officials:", err);
-        });
+        .then((data) => setOfficials(data))
+        .catch((err) => console.error(err));
     }
   }, [open, request]);
 
-  // ✅ Document Details for Filename and UI
   const getDocDetails = () => {
     switch (request?.trans_id) {
       case 1: return { name: "Certificate_of_Indigency", color: "#1976d2" };
@@ -74,19 +71,14 @@ const RequestView = ({ open, onClose, request }) => {
 
   const docDetails = getDocDetails();
 
-  // ✅ PRINT LOGIC
   const handlePrint = useReactToPrint({
     contentRef: contentRef,
-    documentTitle: `${docDetails.name}_${request?.user_name || "Record"}`,
-    onAfterPrint: () => console.log("Print success"),
-    onPrintError: (error) => console.error("Print failed", error),
+    documentTitle: `${docDetails.name}_${request?.user_name || "Record"}`
   });
 
-  // ✅ DOWNLOAD PDF LOGIC
   const handleDownload = () => {
     if (!contentRef.current) return;
 
-    const element = contentRef.current;
     const opt = {
       margin: 0,
       filename: `${docDetails.name}_${request?.user_name || "Document"}.pdf`,
@@ -95,10 +87,9 @@ const RequestView = ({ open, onClose, request }) => {
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
     };
 
-    html2pdf().set(opt).from(element).save();
+    html2pdf().set(opt).from(contentRef.current).save();
   };
 
-  // ✅ STATUS UPDATE (Approve/Reject)
   const handleStatusUpdate = async (newStatus) => {
     setLoading(true);
     try {
@@ -115,7 +106,6 @@ const RequestView = ({ open, onClose, request }) => {
       if (!res.ok) throw new Error(data.error);
 
       setStatus(newStatus);
-      // Using a snackbar here would be better, but keeping alert for now as per your original
       alert(`Status updated to ${newStatus}`);
     } catch (err) {
       alert("Update failed: " + err.message);
@@ -124,50 +114,53 @@ const RequestView = ({ open, onClose, request }) => {
     }
   };
 
-  const handleDelete = async () => {
-  if (!window.confirm("Are you sure you want to delete this request?")) return;
+  // ✅ OPEN CONFIRM DIALOG
+  const handleDeleteClick = () => {
+    setConfirmDeleteOpen(true);
+  };
 
-  setLoading(true);
+  // ✅ CONFIRM DELETE
+  const handleConfirmDelete = async () => {
+    setLoading(true);
 
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch(
-      `http://localhost:3001/api/requests/${request.req_id}`,
-      {
-        method: "DELETE",
-        headers: {
-        Authorization: `Bearer ${token}`
-      }
-      }
-    );
-
-    // ✅ Safely read response as text first
-    const text = await res.text();
-
-    let data;
     try {
-      data = JSON.parse(text);
-    } catch {
-      data = { message: text };
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `http://localhost:3001/api/requests/${request.req_id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+
+      if (!res.ok) throw new Error(data.message || data.error || text);
+
+      alert("Request deleted successfully");
+
+      setConfirmDeleteOpen(false);
+      onClose();
+
+    } catch (err) {
+      alert("Delete failed: " + err.message);
+    } finally {
+      setLoading(false);
     }
-
-    if (!res.ok) throw new Error(data.message || data.error || text);
-
-    alert("Request deleted successfully");
-
-    onClose();
-    window.location.reload();
-
-  } catch (err) {
-    alert("Delete failed: " + err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <>
-      {/* ✅ HIDDEN PRINT AREA — This is what the PDF/Printer "sees" */}
+      {/* HIDDEN PRINT AREA */}
       <div style={{ display: "none" }}>
         <div ref={contentRef} style={{ width: "210mm", backgroundColor: "white" }}>
           {request && TemplateComponent && (
@@ -176,112 +169,109 @@ const RequestView = ({ open, onClose, request }) => {
         </div>
       </div>
 
-      {/* ✅ MAIN UI DIALOG */}
+      {/* MAIN DIALOG */}
       <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: 'center' }}>
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
           <Box>
-            Document Preview 
-            <Typography variant="caption" sx={{ ml: 1, color: docDetails.color, fontWeight: 'bold' }}>
-              ({docDetails.name.replace(/_/g, ' ')})
+            Document Preview
+            <Typography variant="caption" sx={{ ml: 1, color: docDetails.color }}>
+              ({docDetails.name.replace(/_/g, " ")})
             </Typography>
           </Box>
-          <IconButton onClick={onClose}><CloseIcon /></IconButton>
+          <IconButton onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
 
         <DialogContent dividers>
           <Grid container spacing={3}>
-            {/* LEFT PANEL: The actual document preview */}
+            {/* LEFT */}
             <Grid item xs={12} md={8}>
-              <Box 
-                sx={{ 
-                  border: "1px solid #ccc", 
-                  p: 1, 
-                  minHeight: '500px', 
-                  backgroundColor: '#525659', // Dark grey background like a PDF viewer
-                  display: 'flex',
-                  justifyContent: 'center',
-                  overflowY: 'auto',
-                  maxHeight: '70vh'
-                }}
-              >
-                <Box sx={{ transform: 'scale(0.9)', transformOrigin: 'top center', backgroundColor: 'white', boxShadow: 3 }}>
-                  {request && TemplateComponent ? (
-                    <TemplateComponent request={request} officials={officials} />
-                  ) : (
-                    <Box sx={{ p: 5, backgroundColor: 'white' }}>
-                       <Typography color="textSecondary">No preview available for this request type.</Typography>
-                    </Box>
-                  )}
-                </Box>
+              <Box sx={{ border: "1px solid #ccc", p: 1, minHeight: "500px" }}>
+                {request && TemplateComponent ? (
+                  <TemplateComponent request={request} officials={officials} />
+                ) : (
+                  <Typography>No preview available</Typography>
+                )}
               </Box>
             </Grid>
 
-            {/* RIGHT PANEL: Administrative Actions */}
+            {/* RIGHT */}
             <Grid item xs={12} md={4}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2, p: 1 }}>
-                <Typography variant="subtitle2" color="textSecondary">Administrative Actions</Typography>
-                
-                <Button 
-                  variant="contained" 
-                  color="success" 
-                  onClick={() => handleStatusUpdate("accepted")} 
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => handleStatusUpdate("accepted")}
                   disabled={loading || status === "accepted"}
                   fullWidth
                 >
-                  Approve Request
+                  Approve
                 </Button>
 
-                <Button 
-                  variant="contained" 
-                  color="error" 
-                  onClick={() => handleStatusUpdate("rejected")} 
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={() => handleStatusUpdate("rejected")}
                   disabled={loading || status === "rejected"}
                   fullWidth
                 >
-                  Reject Request
+                  Reject
                 </Button>
 
-                <Button 
-                  variant="contained" 
-                  color="error" 
+                {/* DELETE BUTTON */}
+                <Button
+                  variant="contained"
+                  color="error"
                   startIcon={<DeleteIcon />}
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   disabled={loading}
                   fullWidth
                 >
-                  Delete Request
+                  Delete
                 </Button>
 
-                <Typography variant="subtitle2" color="textSecondary">Export Options</Typography>
-                
-                <Button 
-                  variant="contained" 
-                  startIcon={<DownloadIcon />} 
-                  onClick={handleDownload} 
+                <Button
+                  variant="contained"
+                  startIcon={<DownloadIcon />}
+                  onClick={handleDownload}
                   disabled={status !== "accepted"}
-                  sx={{ backgroundColor: '#060745', '&:hover': { backgroundColor: '#0a0b63' } }}
                 >
                   Download PDF
                 </Button>
 
-                <Button 
-                  variant="outlined" 
-                  startIcon={<PrintIcon />} 
-                  onClick={() => handlePrint()} 
+                <Button
+                  variant="outlined"
+                  startIcon={<PrintIcon />}
+                  onClick={handlePrint}
                   disabled={status !== "accepted"}
                 >
-                  Print Document
+                  Print
                 </Button>
-
-                <Box sx={{ mt: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0' }}>
-                  <Typography variant="body2">
-                    Current Status: <b style={{ textTransform: 'uppercase', color: status === 'accepted' ? 'green' : 'orange' }}>{status}</b>
-                  </Typography>
-                </Box>
               </Box>
             </Grid>
           </Grid>
         </DialogContent>
+      </Dialog>
+
+      {/* ✅ CONFIRM DELETE DIALOG */}
+      <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this request?
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteOpen(false)}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
+            Delete
+          </Button>
+        </DialogActions>
       </Dialog>
     </>
   );

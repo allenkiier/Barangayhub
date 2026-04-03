@@ -1282,6 +1282,116 @@ app.delete("/api/council/delete/:id", (req, res) => {
     res.json({ message: "Deleted successfully" });
   });
 });
+
+app.get('/api/users', (req, res) => {
+  db.all(
+    `SELECT 
+      userid AS id,
+      user_name AS name,
+      email_ad AS email,
+      sex,
+      civil_status,
+      contact_no,
+      barangay,
+      municipality,
+      province,
+      birthdate,
+      birthplace,
+      isAdmin
+     FROM user`,
+    [],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.json(rows);
+    }
+  );
+});
+
+app.delete('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+
+  db.run(
+    `DELETE FROM user WHERE userid = ?`,
+    [id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ message: "User deleted successfully" });
+    }
+  );
+});
+
+app.put('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+
+  const {
+    name,
+    email,
+    civil_status,
+    sex,
+    birthdate,
+    birthplace,
+    contact_no,
+    barangay,
+    municipality,
+    province
+  } = req.body;
+
+  // Basic validation
+  if (!name || !email) {
+    return res.status(400).json({ error: "Name and email are required" });
+  }
+
+  db.run(
+    `UPDATE user SET
+      user_name = ?,
+      email_ad = ?,
+      civil_status = ?,
+      sex = ?,
+      birthdate = ?,
+      birthplace = ?,
+      contact_no = ?,
+      barangay = ?,
+      municipality = ?,
+      province = ?
+    WHERE userid = ?`,
+    [
+      name,
+      email,
+      civil_status,
+      sex,
+      birthdate,
+      birthplace,
+      contact_no,
+      barangay,
+      municipality,
+      province,
+      id
+    ],
+    function (err) {
+      if (err) {
+        if (err.message.includes("UNIQUE")) {
+          return res.status(400).json({ error: "Email already exists" });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ message: "User updated successfully" });
+    }
+  );
+});
 // ===================== START SERVER =====================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -12,6 +12,7 @@ import {
   TextField,
   Box
 } from "@mui/material";
+
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import RequestView from "../modals/RequestView";
 
@@ -22,17 +23,19 @@ const Request = () => {
   const [openModal, setOpenModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // ===================== FILTER =====================
   const filteredRequests = requests.filter((req) => {
-  const keyword = searchTerm.toLowerCase();
+    const keyword = searchTerm.toLowerCase();
 
-  return (
-    req.user_name?.toLowerCase().includes(keyword) ||
-    req.trans_name?.toLowerCase().includes(keyword) ||
-    req.transaction_id?.toLowerCase().includes(keyword)
-  );
-});
-  // ===================== FETCH DATA =====================
-  useEffect(() => {
+    return (
+      req.user_name?.toLowerCase().includes(keyword) ||
+      req.trans_name?.toLowerCase().includes(keyword) ||
+      String(req.transaction_id).includes(keyword)
+    );
+  });
+
+  // ===================== FETCH =====================
+  const fetchRequests = () => {
     fetch("http://localhost:3001/api/requests/all")
       .then(res => res.json())
       .then(data => {
@@ -43,9 +46,13 @@ const Request = () => {
         console.error("Error fetching requests:", err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchRequests();
   }, []);
 
-  // ===================== HANDLE VIEW =====================
+  // ===================== PREVIEW =====================
   const handlePreview = (request) => {
     setSelectedRequest(request);
     setOpenModal(true);
@@ -58,19 +65,20 @@ const Request = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Paper elevation={3} sx={{ p: 2, borderRadius: 3,  height: "80vh", overflowY: "auto" }}>
+      <Paper elevation={3} sx={{ p: 2, borderRadius: 3, height: "78vh", overflowY: "auto" }}>
         <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
           Request List
         </Typography>
-         <TextField
-                label="Search..."
-                variant="outlined"
-                size="small"
-                fullWidth
-                sx={{ mb: 2 }}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+
+        <TextField
+          label="Search..."
+          variant="outlined"
+          size="small"
+          fullWidth
+          sx={{ mb: 2 }}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
 
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
@@ -100,6 +108,7 @@ const Request = () => {
                         ? new Date(req.created_at).toLocaleDateString()
                         : "N/A"}
                     </TableCell>
+
                     <TableCell align="center">
                       <IconButton
                         color="primary"
