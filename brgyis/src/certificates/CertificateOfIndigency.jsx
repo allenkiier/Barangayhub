@@ -8,7 +8,7 @@ import MailOutlineIcon from '@mui/icons-material/MailOutline';
 const CertificateOfIndigency = ({ request, officials}) => {
   const { transactionId: urlId } = useParams(); 
   const transactionId = request?.transaction_id || urlId;
-  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "__________________________";
+  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "  ";
 
   const [certData, setCertData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,6 +19,7 @@ const CertificateOfIndigency = ({ request, officials}) => {
     fetch(`http://localhost:3001/api/indigency/${transactionId}`)
       .then(res => res.json())
       .then(data => {
+        console.log("CERT DATA:", data);
         setCertData(data);
         setLoading(false);
       })
@@ -103,7 +104,7 @@ const CertificateOfIndigency = ({ request, officials}) => {
             </div>
         </Box>
 
-        <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'gray' }}>
+        <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'gray', pl: "70px"}}>
           This is an official document generated via the Barangay E-Services System.
         </Typography>
         <footer style={{ width: '100%' }}>
@@ -112,6 +113,9 @@ const CertificateOfIndigency = ({ request, officials}) => {
             <div style={{ textAlign: "left" }}>
               <p style={{ fontWeight: 'bold' }}>Joyao-Joyao Multi Purpose-Hall</p>
               <p>Numancia 5604, Aklan Philippines</p>
+              <p><b>Amount: None </b></p>
+              <p><b>App Type:</b> {certData?.app_type || "N/A"}</p>
+              <p><b>B.R. No:</b> {certData?.transaction_id || "N/A"}</p>
             </div>
             <div style={{ textAlign: "left" }}>
               <p><FacebookIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} /> Brgy. Joyao-Joyao</p>

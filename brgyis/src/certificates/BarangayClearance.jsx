@@ -8,7 +8,7 @@ import MailOutlineIcon from '@mui/icons-material/MailOutline';
 const BarangayClearance = ({ request, officials }) => {
   const { transactionId: urlId } = useParams();
   const transactionId = request?.transaction_id || urlId;
-  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "__________________________";
+  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "   ";
 
   const [clearanceData, setClearanceData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +35,7 @@ const BarangayClearance = ({ request, officials }) => {
         return res.json();
       })
       .then((data) => {
+        console.log("Data:", data);
         // Compute age if the backend doesn't send it
         const finalData = {
           ...data,
@@ -174,7 +175,7 @@ const BarangayClearance = ({ request, officials }) => {
             <Typography variant="caption" sx={{ fontWeight: 'bold' }}>₱ 50.00</Typography>
           </Box>
           <Box sx={{ bgcolor: '#d1d5db', px: 1, mt: 0.2, py: 0.5, border: '1px solid black' }}>
-            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>O.R. No.: </Typography>
+            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>O.R. No.: {clearanceData.transaction_id} </Typography>
           </Box>
         </Box>
 

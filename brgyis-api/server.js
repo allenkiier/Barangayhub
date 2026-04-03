@@ -827,32 +827,32 @@ app.post('/api/brgyid/submit', (req, res) => {
     const trans_id = 2;
 
     db.run(
-      `INSERT INTO brgyid_req (
-        transaction_id, userid,
-        user_name, birthdate, birthplace, sex,
-        house_no, street, barangay, municipality, province,
-        weight, height, blood_type,
-        contact_person, contact_person_no, app_type
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        transaction_id,
-        userid,
-        user.user_name,
-        user.birthdate,
-        user.birthplace,
-        user.sex,
-        user.house_no,
-        user.street,
-        user.barangay,
-        user.municipality,
-        user.province,
-        app_type,
-        weight,
-        height,
-        blood_type,
-        contact_person,
-        contact_person_no
-      ],
+        `INSERT INTO brgyid_req (
+          transaction_id, userid,
+          user_name, birthdate, birthplace, sex,
+          house_no, street, barangay, municipality, province,
+          weight, height, blood_type,
+          contact_person, contact_person_no, app_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          transaction_id,
+          userid,
+          user.user_name,
+          user.birthdate,
+          user.birthplace,
+          user.sex,
+          user.house_no,
+          user.street,
+          user.barangay,
+          user.municipality,
+          user.province,
+          weight,              // ✅ correct
+          height,              // ✅ correct
+          blood_type,          // ✅ correct
+          contact_person,      // ✅ correct
+          contact_person_no,   // ✅ correct
+          app_type             // ✅ correct
+        ],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
 

@@ -10,7 +10,9 @@ import {
   Box,
   Button,
   Typography,
-  IconButton
+  IconButton,
+  Snackbar,
+  Alert
 } from "@mui/material";
 
 import CloseIcon from "@mui/icons-material/Close";
@@ -30,8 +32,14 @@ const RequestView = ({ open, onClose, request }) => {
   const [loading, setLoading] = useState(false);
   const [officials, setOfficials] = useState([]);
 
-  // ✅ CONFIRM DELETE STATE
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  // ✅ Snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const contentRef = useRef(null);
 
@@ -92,6 +100,7 @@ const RequestView = ({ open, onClose, request }) => {
 
   const handleStatusUpdate = async (newStatus) => {
     setLoading(true);
+
     try {
       const res = await fetch(
         `http://localhost:3001/api/requests/${request.req_id}/status`,
@@ -106,20 +115,28 @@ const RequestView = ({ open, onClose, request }) => {
       if (!res.ok) throw new Error(data.error);
 
       setStatus(newStatus);
-      alert(`Status updated to ${newStatus}`);
+
+      setSnackbar({
+        open: true,
+        message: `Status updated to ${newStatus}`,
+        severity: "success",
+      });
+
     } catch (err) {
-      alert("Update failed: " + err.message);
+      setSnackbar({
+        open: true,
+        message: "Update failed: " + err.message,
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ OPEN CONFIRM DIALOG
   const handleDeleteClick = () => {
     setConfirmDeleteOpen(true);
   };
 
-  // ✅ CONFIRM DELETE
   const handleConfirmDelete = async () => {
     setLoading(true);
 
@@ -146,13 +163,25 @@ const RequestView = ({ open, onClose, request }) => {
 
       if (!res.ok) throw new Error(data.message || data.error || text);
 
-      alert("Request deleted successfully");
+      setSnackbar({
+        open: true,
+        message: "Request deleted successfully",
+        severity: "success",
+      });
 
       setConfirmDeleteOpen(false);
-      onClose();
+
+      // small delay so user sees snackbar before close
+      setTimeout(() => {
+        onClose();
+      }, 800);
 
     } catch (err) {
-      alert("Delete failed: " + err.message);
+      setSnackbar({
+        open: true,
+        message: "Delete failed: " + err.message,
+        severity: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -219,7 +248,6 @@ const RequestView = ({ open, onClose, request }) => {
                   Reject
                 </Button>
 
-                {/* DELETE BUTTON */}
                 <Button
                   variant="contained"
                   color="error"
@@ -254,7 +282,7 @@ const RequestView = ({ open, onClose, request }) => {
         </DialogContent>
       </Dialog>
 
-      {/* ✅ CONFIRM DELETE DIALOG */}
+      {/* CONFIRM DELETE DIALOG */}
       <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
 
@@ -273,6 +301,21 @@ const RequestView = ({ open, onClose, request }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ✅ SNACKBAR */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

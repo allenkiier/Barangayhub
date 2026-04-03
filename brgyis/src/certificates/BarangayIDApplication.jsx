@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { Box, Typography, Grid } from '@mui/material';
 
-const BarangayIDApplication = ({ request }) => {
-  // Use the transaction_id from the request prop (passed by RequestView)
+const BarangayIDApplication = ({ request}) => {
   const transactionId = request?.transaction_id;
-
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -17,6 +14,7 @@ const BarangayIDApplication = ({ request }) => {
     fetch(`http://localhost:3001/api/brgyid/${transactionId}`)
       .then((res) => res.json())
       .then((data) => {
+        console.log("FORM DATA:", data);
         setFormData(data);
         setLoading(false);
       })
@@ -63,8 +61,8 @@ const BarangayIDApplication = ({ request }) => {
             <img src='/bago.png' alt='logo' style={{ width: 60, height: 60 }} />
           </div>
           <hr style={{ height: '2px', backgroundColor: 'black', border: 'none', margin: '5px 0' }} />
-          <Typography sx={{ fontWeight: 800, fontSize: '14px', textTransform: 'uppercase' }}>
-            Office of the Punong Barangay
+          <Typography style={{ fontFamily: "'Old English Text MT', serif", fontSize: '24px', color: '#060745' }}>
+                          Office of the Punong Barangay
           </Typography>
         </Box>
 
@@ -156,10 +154,15 @@ const BarangayIDApplication = ({ request }) => {
         </Box>
 
         {/* FOOTER */}
+         <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'gray', pl: "70px"}}>
+                  This is an official document generated via the Barangay E-Services System.
+          </Typography>
         <Box sx={{ borderTop: '2px solid black', pt: 2, display: 'flex', justifyContent: 'space-between' }}>
           <Box>
             <Typography variant="caption" sx={{ display: 'block' }}>Date Applied: {new Date(formData.created_at).toLocaleDateString()}</Typography>
-            <Typography variant="caption" sx={{ display: 'block' }}>Transaction ID: {formData.transaction_id}</Typography>
+            <Typography variant="caption" sx={{ display: 'block' }}>B.R. No.: {formData.transaction_id}</Typography>
+            <Typography variant="caption" sx={{ display: 'block' }}>Amount: Php 150 </Typography>
+            <Typography variant="caption" sx={{ display: 'block' }}> Application Type: {formData?.app_type || "N/A"}</Typography>
           </Box>
           <Box sx={{ border: "1px solid black", width: 250, padding: 2}}>
             <Typography variant="caption" sx={{ fontWeight: 'bold', textAlign: "left" }}>Community Based Monitoring System</Typography>

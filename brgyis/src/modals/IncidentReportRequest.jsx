@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Button, Grid, Alert,
-  FormControl, InputLabel, Select, MenuItem
+  TextField, Button, Grid, FormControl,
+  InputLabel, Select, MenuItem,
+  Snackbar, Alert
 } from "@mui/material";
 import axios from "axios";
 
@@ -14,14 +15,22 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
     narrative: ""
   });
 
-  const [appType, setAppType] = useState(""); // ✅ added
-  const [error, setError] = useState("");
+  const [appType, setAppType] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
 
   const handleSubmit = async () => {
-    setError("");
-
     if (!userid) {
-      setError("User ID is required");
+      setSnackbar({
+        open: true,
+        message: "User ID is required",
+        severity: "error"
+      });
       return;
     }
 
@@ -32,9 +41,15 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
       !formData.narrative ||
       !appType
     ) {
-      setError("All fields including application type are required");
+      setSnackbar({
+        open: true,
+        message: "All fields including application type are required",
+        severity: "warning"
+      });
       return;
     }
+
+    setLoading(true);
 
     try {
       const res = await axios.post(
@@ -45,11 +60,16 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
           incident_time: formData.incident_time,
           incident_address: formData.incident_address,
           narrative: formData.narrative,
-          app_type: appType // ✅ included
+          app_type: appType
         }
       );
 
-      alert("Report Submitted!");
+      setSnackbar({
+        open: true,
+        message: "Report submitted successfully!",
+        severity: "success"
+      });
+
       onClose();
 
       // reset
@@ -63,94 +83,123 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
 
     } catch (err) {
       console.error("Submission error details:", err.response);
-      setError(err.response?.data?.error || "Submission failed.");
+
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.error || "Submission failed.",
+        severity: "error"
+      });
+
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>New Incident Report</DialogTitle>
+    <>
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+        <DialogTitle>New Incident Report</DialogTitle>
 
-      <DialogContent dividers>
-        {error && <Alert severity="error">{error}</Alert>}
+        <DialogContent dividers>
+          <Grid container spacing={2} sx={{ display: "flex", flexDirection: "column", marginTop: 2 }}>
 
-        <Grid container spacing={2}  sx={{display: "flex", flexDirection:"column", marginTop: 2}}>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel id="incident-app-type-label">
-                Application Type
-              </InputLabel>
-              <Select
-                labelId="incident-app-type-label"
-                value={appType}
-                label="Application Type"
-                onChange={(e) => setAppType(e.target.value)}
-              >
-                <MenuItem value="new">New</MenuItem>
-                <MenuItem value="follow-up">Follow-up</MenuItem>
-                <MenuItem value="amendment">Amendment</MenuItem>
-              </Select>
-            </FormControl>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel id="incident-app-type-label">
+                  Application Type
+                </InputLabel>
+                <Select
+                  labelId="incident-app-type-label"
+                  value={appType}
+                  label="Application Type"
+                  onChange={(e) => setAppType(e.target.value)}
+                >
+                  <MenuItem value="New">New</MenuItem>
+                  <MenuItem value="Follow-Up">Follow-up</MenuItem>
+                  <MenuItem value="Amendment">Amendment</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={6}>
+              <TextField
+                label="Date"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) =>
+                  setFormData({ ...formData, incident_date: e.target.value })
+                }
+              />
+            </Grid>
+
+            <Grid item xs={6}>
+              <TextField
+                label="Time"
+                type="time"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) =>
+                  setFormData({ ...formData, incident_time: e.target.value })
+                }
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Location"
+                fullWidth
+                onChange={(e) =>
+                  setFormData({ ...formData, incident_address: e.target.value })
+                }
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                label="Narrative"
+                multiline
+                rows={4}
+                fullWidth
+                onChange={(e) =>
+                  setFormData({ ...formData, narrative: e.target.value })
+                }
+              />
+            </Grid>
+
           </Grid>
+        </DialogContent>
 
-          <Grid item xs={6}>
-            <TextField
-              label="Date"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              onChange={(e) =>
-                setFormData({ ...formData, incident_date: e.target.value })
-              }
-            />
-          </Grid>
+        <DialogActions sx={{ marginBottom: 2, marginRight: 3 }}>
+          <Button onClick={onClose} sx={{ color: "#060745" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            sx={{ background: "#060745" }}
+            disabled={loading}
+          >
+            {loading ? "Submitting..." : "Submit"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-          <Grid item xs={6}>
-            <TextField
-              label="Time"
-              type="time"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              onChange={(e) =>
-                setFormData({ ...formData, incident_time: e.target.value })
-              }
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              label="Location"
-              fullWidth
-              onChange={(e) =>
-                setFormData({ ...formData, incident_address: e.target.value })
-              }
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              label="Narrative"
-              multiline
-              rows={4}
-              fullWidth
-              onChange={(e) =>
-                setFormData({ ...formData, narrative: e.target.value })
-              }
-            />
-          </Grid>
-
-          {/* ✅ APPLICATION TYPE SELECT */}
-          
-        </Grid>
-      </DialogContent>
-
-      <DialogActions sx={{marginBottom: 2, marginRight: 3}}>
-        <Button onClick={onClose} sx={{color: "#060745"}}>Cancel</Button>
-        <Button variant="contained" onClick={handleSubmit}  sx={{background: "#060745"}}> 
-          Submit
-        </Button>
-      </DialogActions>
-    </Dialog>
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

@@ -5,9 +5,10 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import CallIcon from '@mui/icons-material/Call';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 
-const BusinessClearance = ({ request }) => {
+const BusinessClearance = ({ request, officials }) => {
   const { transactionId: urlId } = useParams();
   const transactionId = request?.transaction_id || urlId;
+  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "  ";
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -245,17 +246,24 @@ const BusinessClearance = ({ request }) => {
         {/* SIGNATURE */}
         <Box sx={{ mt: 8, textAlign: 'right', pr: 5 }}>
           <Typography sx={{ fontWeight: 'bold' }}>
-            PERCY M. RASGO
+            {punongBarangay.toUpperCase()}
           </Typography>
           <Typography>Punong Barangay</Typography>
         </Box>
 
+          
           <footer style={{ width: '100%', marginTop: 'auto', paddingBottom: '10px' }}>
+            <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'gray', pl: "70px"}}>
+                This is an official document generated via the Barangay E-Services System.
+            </Typography>
             <hr style={{ height: '2px', backgroundColor: 'black', border: 'none', marginBottom: 5 }} />
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444" }}>
                   <div style={{ textAlign: "left" }}>
                     <p style={{ fontWeight: 'bold' }}>Joyao-Joyao Multi Purpose-Hall</p>
                     <p>Numancia 5604, Aklan Philippines</p>
+                    <p><b>Amount:</b> Php 50.00</p>
+                    <p><b>App Type:</b> {data?.app_type || "N/A"}</p>
+                    <p><b>B.R. No.:</b> {data?.transaction_id || "N/A"}</p>
                   </div>
                   <div style={{ textAlign: "left" }}>
                       <p><FacebookIcon sx={{ fontSize: 14, verticalAlign: 'middle' }} /> Brgy. Joyao-Joyao</p>

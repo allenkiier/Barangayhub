@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Grid, Box,
-  CircularProgress, Typography, MenuItem
+  CircularProgress, Typography, MenuItem,
+  Snackbar, Alert
 } from '@mui/material';
 
 const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
@@ -10,6 +11,12 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const [appType, setAppType] = useState('indigency');
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -30,8 +37,6 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
   useEffect(() => {
     if (!open || !resolvedUserId) return;
 
-    console.log("✅ FETCHING USER ID:", resolvedUserId);
-
     setLoading(true);
 
     fetch(`http://localhost:3001/api/user/${resolvedUserId}/form-indigency`)
@@ -41,6 +46,11 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
       })
       .catch(err => {
         console.error("Fetch error:", err);
+        setSnackbar({
+          open: true,
+          message: "Failed to load user data",
+          severity: "error"
+        });
       })
       .finally(() => {
         setLoading(false);
@@ -51,12 +61,20 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
   // ================= SUBMIT =================
   const handleSubmit = async () => {
     if (!resolvedUserId) {
-      alert("User not detected. Please login again.");
+      setSnackbar({
+        open: true,
+        message: "User not detected. Please login again.",
+        severity: "error"
+      });
       return;
     }
 
     if (!appType) {
-      alert("Please select application type");
+      setSnackbar({
+        open: true,
+        message: "Please select application type",
+        severity: "warning"
+      });
       return;
     }
 
@@ -76,12 +94,21 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
 
       if (!res.ok) throw new Error(data.error);
 
-      alert(`✅ Submitted!\nTransaction ID: ${data.transaction_id}`);
+      setSnackbar({
+        open: true,
+        message: `Submitted! Transaction ID: ${data.transaction_id}`,
+        severity: "success"
+      });
+
       onClose();
 
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      setSnackbar({
+        open: true,
+        message: err.message,
+        severity: "error"
+      });
     } finally {
       setSubmitting(false);
     }
@@ -89,75 +116,97 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
 
   // ================= UI =================
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{serviceName || "Certificate of Indigency"}</DialogTitle>
+    <>
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+        <DialogTitle>{serviceName || "Certificate of Indigency"}</DialogTitle>
 
-      <DialogContent>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center'}}>
-            <CircularProgress />
-          </Box>
-            ) : (
-          <Grid container spacing={2} py={3}>
-            <Grid sx={{ display: "flex", flexDirection: "column" }}>
-              
-              {/* APPLICATION TYPE SELECT */}
-              <Grid item xs={12} marginBottom={3}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Application Type"
-                  value={appType}
-                  onChange={(e) => setAppType(e.target.value)}
-                >
-                  <MenuItem value="indigency">New</MenuItem>
-                  <MenuItem value="clearance">Renew</MenuItem>
-                  <MenuItem value="replacement">Reissuance (lost or damaged)</MenuItem>
-                </TextField>
+        <DialogContent>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={2} py={3}>
+              <Grid sx={{ display: "flex", flexDirection: "column" }}>
+
+                {/* APPLICATION TYPE */}
+                <Grid item xs={12} marginBottom={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Application Type"
+                    value={appType}
+                    onChange={(e) => setAppType(e.target.value)}
+                  >
+                    <MenuItem value="New">New</MenuItem>
+                    <MenuItem value="Renew">Renew</MenuItem>
+                    <MenuItem value="Reissuance">Reissuance (lost or damaged)</MenuItem>
+                  </TextField>
+                </Grid>
+
+                <Grid item xs={12} marginBottom={3}>
+                  <TextField
+                    fullWidth
+                    label="Full Name"
+                    value={formData.name || ''}
+                    InputProps={{ readOnly: true }}
+                  />
+                </Grid>
+
+                <Grid item xs={4} sx={{ display: "flex", flexDirection: 'row' }} gap={2}>
+                  <TextField sx={{ width: "100px" }} label="Age" value={formData.age || ''} InputProps={{ readOnly: true }} />
+                  <TextField label="Sex" value={formData.sex || ''} InputProps={{ readOnly: true }} />
+                  <TextField label="Civil Status" value={formData.civilStatus || ''} InputProps={{ readOnly: true }} />
+                </Grid>
+
+                <Grid item xs={12} my={2}>
+                  <Typography variant="subtitle2">Address</Typography>
+                </Grid>
+
+                <Grid item xs={12} sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                  <TextField sx={{ width: "100px" }} label="House No." value={formData.house_no || ''} InputProps={{ readOnly: true }} />
+                  <TextField sx={{ width: "200px" }} label="Street" value={formData.street || ''} InputProps={{ readOnly: true }} />
+                  <TextField sx={{ width: "200px" }} label="Barangay" value={formData.barangay || ''} InputProps={{ readOnly: true }} />
+                </Grid>
+
+                <Grid item xs={12} sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 2 }}>
+                  <TextField sx={{ width: "200px" }} label="Municipality" value={formData.municipality || ''} InputProps={{ readOnly: true }} />
+                  <TextField sx={{ width: "200px" }} label="Province" value={formData.province || ''} InputProps={{ readOnly: true }} />
+                </Grid>
+
               </Grid>
-
-              <Grid item xs={12} marginBottom={3}>
-                <TextField fullWidth label="Full Name" value={formData.name || ''} InputProps={{ readOnly: true }} />
-              </Grid>
-
-              <Grid item xs={4} sx={{ display: "flex", flexDirection: 'row' }} gap={2}>
-                <TextField sx={{ width: "100px" }} label="Age" value={formData.age || ''} InputProps={{ readOnly: true }} />
-                <TextField label="Sex" value={formData.sex || ''} InputProps={{ readOnly: true }} />
-                <TextField label="Civil Status" value={formData.civilStatus || ''} InputProps={{ readOnly: true }} />
-              </Grid>
-
-              <Grid item xs={12} my={2}>
-                <Typography variant="subtitle2">Address</Typography>
-              </Grid>
-
-              <Grid item xs={12} gap={3} sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 3 }}>
-                <TextField sx={{ width: "100px" }} label="House No." value={formData.house_no || ''} InputProps={{ readOnly: true }} />
-                <TextField sx={{ width: "200px" }} label="Street" value={formData.street || ''} InputProps={{ readOnly: true }} />
-                <TextField sx={{ width: "200px" }} label="Barangay" value={formData.barangay || ''} InputProps={{ readOnly: true }} />
-              </Grid>
-
-              <Grid item xs={12} gap={3} sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
-                <TextField sx={{ width: "200px" }} label="Municipality" value={formData.municipality || ''} InputProps={{ readOnly: true }} />
-                <TextField sx={{ width: "200px" }} label="Province" value={formData.province || ''} InputProps={{ readOnly: true }} />
-              </Grid>
-
             </Grid>
-          </Grid>
-        )}
-      </DialogContent>
+          )}
+        </DialogContent>
 
-      <DialogActions sx={{marginBottom: 2, marginRight: 3}}>
-        <Button onClick={onClose} sx={{color: "#060745"}}>Cancel</Button>
-        <Button
-          onClick={handleSubmit}
-          sx={{background: "#060745"}}
-          variant="contained"
-          disabled={loading || submitting}
+        <DialogActions sx={{ marginBottom: 2, marginRight: 3 }}>
+          <Button onClick={onClose} sx={{ color: "#060745" }}>Cancel</Button>
+          <Button
+            onClick={handleSubmit}
+            sx={{ background: "#060745" }}
+            variant="contained"
+            disabled={loading || submitting}
+          >
+            {submitting ? "Submitting..." : "Submit"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
         >
-          {submitting ? "Submitting..." : "Submit"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

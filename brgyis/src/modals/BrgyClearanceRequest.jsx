@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Grid, Box, CircularProgress, MenuItem
+  Button, TextField, Grid, Box, CircularProgress, MenuItem,
+  Snackbar, Alert
 } from "@mui/material";
 
 const BrgyClearanceRequest = ({ open, onClose }) => {
@@ -23,6 +24,13 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
     province: ""
   });
 
+  // ✅ Snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
+
   // ================= GET USER =================
   useEffect(() => {
     if (open) {
@@ -30,7 +38,11 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
       const uid = storedUser?.userid;
 
       if (!uid) {
-        alert("User not logged in");
+        setSnackbar({
+          open: true,
+          message: "User not logged in",
+          severity: "error"
+        });
         return;
       }
 
@@ -55,6 +67,11 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
         })
         .catch(err => {
           console.error(err);
+          setSnackbar({
+            open: true,
+            message: "Failed to fetch user data",
+            severity: "error"
+          });
           setLoading(false);
         });
     }
@@ -63,12 +80,20 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
   // ================= SUBMIT =================
   const handleSubmit = async () => {
     if (!userid) {
-      alert("Missing user ID");
+      setSnackbar({
+        open: true,
+        message: "Missing user ID",
+        severity: "error"
+      });
       return;
     }
 
     if (!purpose) {
-      alert("Please select a purpose");
+      setSnackbar({
+        open: true,
+        message: "Please select a purpose",
+        severity: "warning"
+      });
       return;
     }
 
@@ -90,12 +115,21 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
 
       if (!res.ok) throw new Error(data.error);
 
-      alert("✅ Request submitted successfully!");
+      setSnackbar({
+        open: true,
+        message: "Request submitted successfully!",
+        severity: "success"
+      });
+
       onClose();
 
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      setSnackbar({
+        open: true,
+        message: err.message,
+        severity: "error"
+      });
     } finally {
       setSubmitting(false);
     }
@@ -103,68 +137,86 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
 
   // ================= UI =================
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>Barangay Clearance Request</DialogTitle>
+    <>
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+        <DialogTitle>Barangay Clearance Request</DialogTitle>
 
-      <DialogContent>
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <Grid container spacing={2} sx={{display: "flex", flexDirection:"column", marginTop: 2}}>
+        <DialogContent>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={2} sx={{ display: "flex", flexDirection: "column", marginTop: 2 }}>
 
-            <Grid item xs={12}>
-              <TextField
-                select
-                sx={{width: "25%"}}
-                label="Application Type"
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-              >
-                <MenuItem value="new">New</MenuItem>
-                <MenuItem value="renew">Renew</MenuItem>
-                <MenuItem value="replacement">Reissuance (lost or damaged)</MenuItem>
-              </TextField>
+              <Grid item xs={12}>
+                <TextField
+                  select
+                  sx={{ width: "25%" }}
+                  label="Application Type"
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                >
+                  <MenuItem value="New">New</MenuItem>
+                  <MenuItem value="Renew">Renew</MenuItem>
+                  <MenuItem value="Reissuance">Reissuance (lost or damaged)</MenuItem>
+                </TextField>
+              </Grid>
+
+              {/* READ ONLY USER INFO */}
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Name" value={formData.name} InputProps={{ readOnly: true }} />
+              </Grid>
+
+              <Grid item xs={12} sm={6} sx={{ display: "flex", flexDirection: "row", justifyContent: "start", gap: 3 }}>
+                <TextField sx={{ width: "30%" }} label="Sex" value={formData.sex} InputProps={{ readOnly: true }} />
+                <TextField sx={{ width: "30%" }} label="Birthdate" value={formData.birthdate} InputProps={{ readOnly: true }} />
+                <TextField sx={{ width: "30%" }} label="Birthplace" value={formData.birthplace} InputProps={{ readOnly: true }} />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Address"
+                  value={`${formData.house_no} ${formData.street}, ${formData.barangay}, ${formData.municipality}, ${formData.province}`}
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+
             </Grid>
-            {/* READ ONLY USER INFO */}
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Name" value={formData.name} InputProps={{ readOnly: true }} />
-            </Grid>
+          )}
+        </DialogContent>
 
-            <Grid item xs={12} sm={6} sx={{display: "flex", flexDirection:"row", justifyContent: "start", gap: 3}}>
-              <TextField sx={{width: "30%"}} label="Sex" value={formData.sex} InputProps={{ readOnly: true }} />
-              <TextField sx={{width: "30%"}} label="Birthdate" value={formData.birthdate} InputProps={{ readOnly: true }} />
-              <TextField sx={{width: "30%"}} label="Birthplace" value={formData.birthplace} InputProps={{ readOnly: true }} />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Address"
-                value={`${formData.house_no} ${formData.street}, ${formData.barangay}, ${formData.municipality}, ${formData.province}`}
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
+        <DialogActions sx={{ marginBottom: 2, marginRight: 3 }}>
+          <Button onClick={onClose} sx={{ color: "#060745" }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            sx={{ background: "#060745" }}
+            disabled={loading || submitting}
+          >
+            {submitting ? "Submitting..." : "Submit"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-            {/* PURPOSE */}
-            
-
-          </Grid>
-        )}
-      </DialogContent>
-
-      <DialogActions sx={{marginBottom: 2, marginRight: 3}}>
-        <Button onClick={onClose} sx={{color: "#060745"}}>Cancel</Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          sx={{background: "#060745"}}
-          disabled={loading || submitting}
+      {/* ✅ SNACKBAR */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
         >
-          {submitting ? "Submitting..." : "Submit"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

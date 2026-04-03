@@ -10,8 +10,8 @@ import MailOutlineIcon from '@mui/icons-material/MailOutline';
 const IncidentReport = ({ request, officials }) => {
   if (!request) return null;
 
-  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "__________________________";
-  const barangaySecretary = officials?.find(o => o.role === 'Barangay Secretary')?.name || "__________________________";
+  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "  ";
+  const barangaySecretary = officials?.find(o => o.role === 'Barangay Secretary')?.name || "  ";
 
   // Data mapping from the database object
   const reportData = {
