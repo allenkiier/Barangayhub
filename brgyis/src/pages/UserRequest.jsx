@@ -8,13 +8,32 @@ import {
   Chip,
   Stack
 } from '@mui/material';
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import IconButton from "@mui/material/IconButton";
+import UserRequestView from '../modals/UserRequestView';
 
 const UserRequest = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const userid = localStorage.getItem("userid"); // adjust if using context
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [openView, setOpenView] = useState(false);
 
+  const userid = localStorage.getItem("userid");
+
+  // ✅ Open modal
+  const handleView = (req) => {
+    setSelectedRequest(req);
+    setOpenView(true);
+  };
+
+  // ✅ Close modal
+  const handleCloseView = () => {
+    setOpenView(false);
+    setSelectedRequest(null);
+  };
+
+  // ✅ Fetch requests
   useEffect(() => {
     const fetchRequests = async () => {
       try {
@@ -36,12 +55,15 @@ const UserRequest = () => {
     if (userid) fetchRequests();
   }, [userid]);
 
+  // ✅ Status color helper
   const getStatusColor = (status) => {
     switch (status) {
       case "approved":
         return "success";
       case "rejected":
         return "error";
+      case "cancelled":
+        return "default";
       default:
         return "warning";
     }
@@ -61,7 +83,7 @@ const UserRequest = () => {
           sx={{
             p: 2,
             maxHeight: "70vh",
-            overflowY: "auto",   // 🔥 SCROLLABLE
+            overflowY: "auto",
             borderRadius: 2
           }}
         >
@@ -85,6 +107,7 @@ const UserRequest = () => {
                     alignItems: "center"
                   }}
                 >
+                  {/* LEFT SIDE */}
                   <Box>
                     <Typography fontWeight="bold">
                       {req.trans_name}
@@ -99,16 +122,39 @@ const UserRequest = () => {
                     </Typography>
                   </Box>
 
-                  <Chip
-                    label={req.status}
-                    color={getStatusColor(req.status)}
-                    sx={{ textTransform: "capitalize", fontWeight: "bold" }}
-                  />
+                  {/* RIGHT SIDE */}
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Chip
+                      label={req.status}
+                      color={getStatusColor(req.status)}
+                      sx={{ textTransform: "capitalize", fontWeight: "bold" }}
+                    />
+
+                    <IconButton onClick={() => handleView(req)}>
+                      <VisibilityIcon />
+                    </IconButton>
+                  </Box>
                 </Box>
               ))}
             </Stack>
           )}
         </Paper>
+
+        {/* ✅ MODAL (MUST BE OUTSIDE CONDITIONAL) */}
+        <UserRequestView
+          open={openView}
+          onClose={handleCloseView}
+          request={selectedRequest}
+          onRequestUpdated={(updated) => {
+            setRequests((prev) =>
+              prev.map((r) =>
+                r.req_id === updated.req_id
+                  ? { ...r, status: updated.status }
+                  : r
+              )
+            );
+          }}
+        />
       </Box>
     </Box>
   );

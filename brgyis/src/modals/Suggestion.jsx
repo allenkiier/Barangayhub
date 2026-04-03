@@ -61,7 +61,7 @@ const Suggestion = ({ open, onClose }) => {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Suggestion / Complaint</DialogTitle>
+      <DialogTitle>Suggestions</DialogTitle>
 
       <DialogContent>
         <Typography variant="body2" sx={{ mb: 2 }}>
@@ -97,6 +97,7 @@ const Suggestion = ({ open, onClose }) => {
             variant="contained"
             onClick={handleSubmit}
             disabled={loading}
+            sx={{background: "#060745"}}
           >
             {loading ? "Submitting..." : "Submit"}
           </Button>

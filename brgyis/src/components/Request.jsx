@@ -9,6 +9,7 @@ import {
   TableBody,
   IconButton,
   CircularProgress,
+  TextField,
   Box
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -19,7 +20,17 @@ const Request = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [openModal, setOpenModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
+  const filteredRequests = requests.filter((req) => {
+  const keyword = searchTerm.toLowerCase();
+
+  return (
+    req.user_name?.toLowerCase().includes(keyword) ||
+    req.trans_name?.toLowerCase().includes(keyword) ||
+    req.transaction_id?.toLowerCase().includes(keyword)
+  );
+});
   // ===================== FETCH DATA =====================
   useEffect(() => {
     fetch("http://localhost:3001/api/requests/all")
@@ -47,10 +58,19 @@ const Request = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Paper elevation={3} sx={{ p: 2, borderRadius: 3 }}>
+      <Paper elevation={3} sx={{ p: 2, borderRadius: 3,  height: "80vh", overflowY: "auto" }}>
         <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
           Request List
         </Typography>
+         <TextField
+                label="Search..."
+                variant="outlined"
+                size="small"
+                fullWidth
+                sx={{ mb: 2 }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
 
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
@@ -69,8 +89,8 @@ const Request = () => {
             </TableHead>
 
             <TableBody>
-              {requests.length > 0 ? (
-                requests.map((req) => (
+              {filteredRequests.length > 0 ? (
+                filteredRequests.map((req) => (
                   <TableRow key={req.req_id}>
                     <TableCell>{req.user_name || "N/A"}</TableCell>
                     <TableCell>{req.trans_name || "N/A"}</TableCell>

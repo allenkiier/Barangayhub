@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 
 const app = express();
 const PORT = 3001;
-const SECRET_KEY = "secretkey";
+const SECRET_KEY = process.env.JWT_SECRET || "fallback_secret";
 
 app.use(cors());
 app.use(express.json());
@@ -29,10 +29,6 @@ db.run(`PRAGMA foreign_keys = ON`);
 
 // ===================== TABLES =====================
 db.serialize(() => {
-  const transactions = ['Indigency', 'Barangay ID', 'Barangay Clearance', 'Business Clearance', 'Incident Report'];
-  transactions.forEach((name, index) => {
-    db.run(`INSERT OR IGNORE INTO transactions (trans_id, trans_name) VALUES (?, ?)`, [index + 1, name]);
-  });
 
   db.run(`
     CREATE TABLE IF NOT EXISTS user (
@@ -89,7 +85,7 @@ db.serialize(() => {
         barangay TEXT,
         municipality TEXT,
         province TEXT,
-
+        app_type TEXT,
         date_issued TEXT, 
         FOREIGN KEY (userid) REFERENCES user(userid)
       );
@@ -98,9 +94,18 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS transactions (
       trans_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      trans_name TEXT NOT NULL
+      trans_name TEXT NOT NULL,
+      amount TEXT
     )
   `);
+
+  const transactions = ['Indigency', 'Barangay ID', 'Barangay Clearance', 'Business Clearance', 'Incident Report'];
+  transactions.forEach((name, index) => {
+    db.run(
+      `INSERT OR IGNORE INTO transactions (trans_id, trans_name, amount) VALUES (?, ?, ?)`,
+      [index + 1, name, "0"]
+    );
+  });
 
     db.run(`
       CREATE TABLE IF NOT EXISTS request (
@@ -110,6 +115,7 @@ db.serialize(() => {
         userid INTEGER NOT NULL,
         status TEXT DEFAULT 'pending',
         created_at TEXT DEFAULT (DATETIME('now')),
+        app_type TEXT,
 
         FOREIGN KEY (trans_id) REFERENCES transactions(trans_id),
         FOREIGN KEY (userid) REFERENCES user(userid)
@@ -138,7 +144,7 @@ db.serialize(() => {
         blood_type TEXT,
         contact_person TEXT,
         contact_person_no TEXT,
-
+        app_type TEXT,
         created_at TEXT DEFAULT (DATETIME('now')),
 
         FOREIGN KEY (userid) REFERENCES user(userid)
@@ -177,7 +183,7 @@ db.serialize(() => {
         business_address TEXT,
 
         created_at TEXT,
-
+        app_type TEXT,
         FOREIGN KEY (userid) REFERENCES user(userid)
       );
     `);
@@ -240,6 +246,14 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+const requireAdmin = (req, res, next) => {
+  if (req.user.isAdmin !== 1) {
+    return res.status(403).json({ error: "Admin only" });
+  }
+  next();
+};
+
+
 // ===================== LOGIN =====================
 app.post("/api/login", (req, res) => {
   const { email_ad, password, isAdmin } = req.body;
@@ -276,8 +290,9 @@ app.post("/api/login", (req, res) => {
         );
 
         res.json({
+          token: token,
           userid: user.userid,
-          isAdmin: user.isAdmin === 1,
+          isAdmin: user.isAdmin,
           token,
         });
       });
@@ -332,8 +347,8 @@ app.post('/api/signup', (req, res) => {
 });
 
 // ===================== ADMIN REQUESTS =====================
-app.get('/api/admin/requests', (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ error: "Admin only" });
+app.get('/api/admin/requests', authenticateToken, requireAdmin, (req, res) => {
+  if (req.user.isAdmin !== 1) return res.status(403).json({ error: "Admin only" });
   db.all(
     `SELECT userid, user_name, email_ad, admin_status
      FROM user
@@ -346,8 +361,8 @@ app.get('/api/admin/requests', (req, res) => {
   );
 });
 
-app.post('/api/admin/approve/:id', authenticateToken, (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ error: "Unauthorized" });
+app.post('/api/admin/approve/:id', authenticateToken, requireAdmin, (req, res) => {
+  if (req.user.isAdmin !== 1 ) return res.status(403).json({ error: "Unauthorized" });
   
   const userId = req.params.id;
   db.run(`UPDATE user SET isAdmin = 1, admin_status = 'approved' WHERE userid = ?`, [userId], function (err) {
@@ -356,7 +371,11 @@ app.post('/api/admin/approve/:id', authenticateToken, (req, res) => {
   });
 });
 
-app.post('/api/admin/reject/:id', (req, res) => {
+app.post('/api/admin/reject/:id', authenticateToken, requireAdmin, (req, res) => {
+  if (req.user.isAdmin !== 1 ) {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
   const userId = req.params.id;
 
   db.run(
@@ -525,6 +544,25 @@ app.get("/api/council/all", (req, res) => {
   });
 });
 
+app.get('/api/council/active-officials', (req, res) => {
+  const sql = `
+    SELECT name, role 
+    FROM council 
+    WHERE is_active = 1 
+    AND (role = 'Punong Barangay' OR role = 'Barangay Secretary')
+  `;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error("Database error:", err.message);
+      return res.status(500).json({ error: "Failed to fetch council officials" });
+    }
+
+    // ✅ Always return an array
+    res.json(rows || []);
+  });
+});
+
 app.put("/api/council/update-status/:id", (req, res) => {
   const { is_active } = req.body;
   const { id } = req.params;
@@ -605,9 +643,10 @@ app.get('/api/user/:userid/form-indigency', (req, res) => {
 });
 
 app.post('/api/indigency/submit', (req, res) => {
-  const { userid } = req.body;
+  const { userid, app_type } = req.body;
 
   if (!userid) return res.status(400).json({ error: "User ID required" });
+  if (!app_type) return res.status(400).json({ error: "Application type required" });
 
   db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -616,7 +655,6 @@ app.post('/api/indigency/submit', (req, res) => {
     const transaction_id = `IND-${Date.now()}`;
     const trans_id = 1;
 
-    // Generate a readable date (e.g., "April 1, 2026")
     const date_issued = new Intl.DateTimeFormat('en-PH', {
       day: 'numeric',
       month: 'long',
@@ -626,13 +664,13 @@ app.post('/api/indigency/submit', (req, res) => {
     db.run(
       `INSERT INTO indig_req (
         transaction_id, userid, user_name, birthdate, sex, civil_status,
-        house_no, street, barangay, municipality, province, date_issued
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        house_no, street, barangay, municipality, province, app_type, date_issued
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         transaction_id,
         userid,
         user.user_name,
-        user.birthdate, // <--- Add this from the user object
+        user.birthdate,
         user.sex,
         user.civil_status,
         user.house_no,
@@ -640,15 +678,16 @@ app.post('/api/indigency/submit', (req, res) => {
         user.barangay,
         user.municipality,
         user.province,
+        app_type,  
         date_issued
       ],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
 
         db.run(
-          `INSERT INTO request (transaction_id, trans_id, userid, status)
-           VALUES (?, ?, ?, 'pending')`,
-          [transaction_id, trans_id, userid],
+          `INSERT INTO request (transaction_id, trans_id, userid, status, app_type)
+           VALUES (?, ?, ?, 'pending', ?)`,
+          [transaction_id, trans_id, userid, app_type],
           function (err) {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ message: "Request submitted successfully", transaction_id });
@@ -685,7 +724,11 @@ app.put('/api/requests/:req_id/status', (req, res) => {
 });
 
 app.get('/api/indigency/:transaction_id', (req, res) => {
-  const sql = `SELECT * FROM indig_req WHERE transaction_id = ?`;
+  const sql = `SELECT i.*, t.amount, r.app_type
+              FROM indig_req i
+              LEFT JOIN request r ON i.transaction_id = r.transaction_id
+              LEFT JOIN transactions t ON r.trans_id = t.trans_id
+              WHERE i.transaction_id = ?`;
   
   db.get(sql, [req.params.transaction_id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -708,10 +751,12 @@ app.get('/api/requests/all', (req, res) => {
       r.transaction_id,
       r.trans_id,
       r.status,
+      r.app_type,
       r.created_at,
 
       u.user_name,
       t.trans_name,
+      t.amount,
 
       bc.address AS bc_address,
       bc.age AS bc_age,
@@ -768,37 +813,26 @@ app.post('/api/brgyid/submit', (req, res) => {
     height,
     blood_type,
     contact_person,
-    contact_person_no
+    contact_person_no,
+    app_type
   } = req.body;
 
-  // ================= VALIDATION =================
-  if (!userid) {
-    return res.status(400).json({ error: "User ID required" });
-  }
+  if (!app_type) return res.status(400).json({ error: "Application type required" });
 
-  if (!weight || !height || !blood_type || !contact_person || !contact_person_no) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-
-  // ================= GET USER =================
   db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const transaction_id = `BID-${Date.now()}`;
-    const trans_id = 2; // ⚠️ MAKE SURE THIS MATCHES YOUR transactions TABLE
+    const trans_id = 2;
 
-    const created_at = new Date().toISOString();
-
-    // ================= INSERT BRGY ID =================
     db.run(
       `INSERT INTO brgyid_req (
         transaction_id, userid,
         user_name, birthdate, birthplace, sex,
         house_no, street, barangay, municipality, province,
         weight, height, blood_type,
-        contact_person, contact_person_no,
-        created_at
+        contact_person, contact_person_no, app_type
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         transaction_id,
@@ -812,32 +846,21 @@ app.post('/api/brgyid/submit', (req, res) => {
         user.barangay,
         user.municipality,
         user.province,
+        app_type,
         weight,
         height,
         blood_type,
         contact_person,
-        contact_person_no,
-        created_at
+        contact_person_no
       ],
       function (err) {
-        if (err) {
-          console.error("Insert error:", err.message);
-          return res.status(500).json({ error: err.message });
-        }
+        if (err) return res.status(500).json({ error: err.message });
 
-        // ================= INSERT REQUEST =================
         db.run(
-          `INSERT INTO request (transaction_id, trans_id, userid, status)
-           VALUES (?, ?, ?, 'pending')`,
-          [transaction_id, trans_id, userid],
-          function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-
-            res.json({
-              message: "Barangay ID request submitted successfully",
-              transaction_id
-            });
-          }
+          `INSERT INTO request (transaction_id, trans_id, userid, status, app_type)
+           VALUES (?, ?, ?, 'pending', ?)`,
+          [transaction_id, trans_id, userid, app_type],
+          () => res.json({ transaction_id })
         );
       }
     );
@@ -845,75 +868,18 @@ app.post('/api/brgyid/submit', (req, res) => {
 });
 
 app.post('/api/brgy-clearance/submit', (req, res) => {
-  const { userid, purpose } = req.body;
-
-  if (!userid) {
-    return res.status(400).json({ error: "User ID required" });
-  }
-
-  if (!purpose) {
-    return res.status(400).json({ error: "Purpose is required" });
-  }
-
+  const { userid, purpose, app_type } = req.body;
   db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!user) return res.status(404).json({ error: "User not found" });
-
     const transaction_id = `BRC-${Date.now()}`;
-    const trans_id = 3;
-    const created_at = new Date().toISOString();
-
-    const address = [
-      user.house_no,
-      user.street,
-      user.barangay,
-      user.municipality,
-      user.province
-    ].filter(Boolean).join(", ");
-
-    const age = calculateAge(user.birthdate);
-
-    db.run(
-      `INSERT INTO brgy_clearance_req (
-        transaction_id, userid,
-        user_name, address, age, sex, civil_status,
-        birthdate, birthplace,
-        purpose, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        transaction_id,
-        userid,
-        user.user_name,
-        address,
-        age,
-        user.sex,
-        user.civil_status,
-        user.birthdate,
-        user.birthplace,
-        purpose,
-        created_at
-      ],
-      function (err) {
-        if (err) {
-          console.error("Insert error:", err.message);
-          return res.status(500).json({ error: err.message });
-        }
-
-        db.run(
-          `INSERT INTO request (transaction_id, trans_id, userid, status)
-           VALUES (?, ?, ?, 'pending')`,
-          [transaction_id, trans_id, userid],
-          function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-
-            res.json({
-              message: "Barangay Clearance request submitted",
-              transaction_id
-            });
-          }
-        );
-      }
-    );
+    const trans_id = 3; //
+    const address = [user.house_no, user.street, user.barangay, user.municipality].filter(Boolean).join(", ");
+    db.run(`INSERT INTO brgy_clearance_req (transaction_id, userid, user_name, address, age, sex, civil_status, birthdate, birthplace, purpose, app_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [transaction_id, userid, user.user_name, address, calculateAge(user.birthdate), user.sex, user.civil_status, user.birthdate, user.birthplace, purpose, app_type, new Date().toISOString()],
+      () => {
+        db.run(`INSERT INTO request (transaction_id, trans_id, userid, status, app_type) VALUES (?, 3, ?, 'pending', ?)`,
+          [transaction_id, userid, app_type], () => res.json({ message: "Success", transaction_id }));
+      });
   });
 });
 
@@ -932,12 +898,16 @@ app.get('/api/clearance/:transaction_id', (req, res) => {
 
 
 app.post('/api/business-clearance/submit', (req, res) => {
-  const { userid, trade_name, business_address } = req.body;
+  const { userid, trade_name, business_address, app_type } = req.body;
 
   // VALIDATION
   if (!userid) {
     return res.status(400).json({ error: "User ID required" });
   }
+
+  if (!app_type) {
+  return res.status(400).json({ error: "Application type required" });
+}
 
   if (!trade_name || !business_address) {
     return res.status(400).json({ error: "All fields are required" });
@@ -956,15 +926,16 @@ app.post('/api/business-clearance/submit', (req, res) => {
     db.run(
       `INSERT INTO business_clearance_req (
         transaction_id, userid,
-        user_name, trade_name, business_address,
+        user_name, trade_name, business_address, app_type,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         transaction_id,
         userid,
         user.user_name,
         trade_name,
         business_address,
+        app_type,
         created_at
       ],
       function (err) {
@@ -975,9 +946,9 @@ app.post('/api/business-clearance/submit', (req, res) => {
 
         // INSERT REQUEST
         db.run(
-          `INSERT INTO request (transaction_id, trans_id, userid, status)
-           VALUES (?, ?, ?, 'pending')`,
-          [transaction_id, trans_id, userid],
+          `INSERT INTO request (transaction_id, trans_id, userid, status, app_type)
+           VALUES (?, ?, ?, 'pending', ?)`,
+          [transaction_id, trans_id, userid, app_type],
           function (err) {
             if (err) return res.status(500).json({ error: err.message });
 
@@ -1012,12 +983,17 @@ app.get('/api/business-clearance/:transaction_id', (req, res) => {
 });
 
 // ===================== INCIDENT REPORT SUBMISSION =====================
+
+
 app.post('/api/incident-report/submit', (req, res) => {
-  const { userid, incident_date, incident_time, incident_address, narrative } = req.body;
+  const { userid, incident_date, incident_time, incident_address, narrative, app_type } = req.body;
 
   console.log("POST /api/incident-report/submit called by user:", userid);
 
   if (!userid) return res.status(400).json({ error: "User ID required" });
+  if (!app_type) {
+  return res.status(400).json({ error: "Application type required" });
+}
 
   db.get(`SELECT * FROM user WHERE userid = ?`, [userid], (err, user) => {
     if (err || !user) return res.status(404).json({ error: "User profile not found" });
@@ -1031,8 +1007,8 @@ app.post('/api/incident-report/submit', (req, res) => {
     db.run(
       `INSERT INTO incident_reports (
         transaction_id, userid, user_name, address, 
-        incident_date, incident_time, incident_address, narrative
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        incident_date, incident_time, incident_address, narrative, app_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [transaction_id, userid, user.user_name, homeAddress, incident_date, incident_time, incident_address, narrative],
       function (err) {
         if (err) {
@@ -1042,8 +1018,8 @@ app.post('/api/incident-report/submit', (req, res) => {
 
         // Insert into general requests
         db.run(
-          `INSERT INTO request (transaction_id, trans_id, userid, status) VALUES (?, ?, ?, 'pending')`,
-          [transaction_id, trans_id, userid],
+          `INSERT INTO request (transaction_id, trans_id, userid, status, app_type) VALUES (?, ?, ?, 'pending', ?)`,
+          [transaction_id, trans_id, userid, app_type],
           (err2) => {
             if (err2) return res.status(500).json({ error: err2.message });
             res.json({ message: "Incident report submitted successfully", transaction_id });
@@ -1220,6 +1196,7 @@ app.post("/api/complaints", (req, res) => {
 });
 
 
+
 // ===================== GET USER REQUESTS =====================
 app.get('/api/requests/user/:userid', (req, res) => {
   const { userid } = req.params;
@@ -1229,10 +1206,39 @@ app.get('/api/requests/user/:userid', (req, res) => {
       r.req_id,
       r.transaction_id,
       r.status,
+      r.app_type,
       r.created_at,
-      t.trans_name
+
+      t.trans_name,
+      r.trans_id,
+      t.amount,
+
+      -- Indigency
+      i.date_issued,
+
+      -- Barangay ID
+      b.birthdate,
+      b.blood_type,
+
+      -- Clearance
+      bc.purpose,
+
+      -- Business
+      bb.trade_name,
+
+      -- Incident
+      ir.incident_date,
+      ir.incident_time
+
     FROM request r
     LEFT JOIN transactions t ON r.trans_id = t.trans_id
+
+    LEFT JOIN indig_req i ON r.transaction_id = i.transaction_id
+    LEFT JOIN brgyid_req b ON r.transaction_id = b.transaction_id
+    LEFT JOIN brgy_clearance_req bc ON r.transaction_id = bc.transaction_id
+    LEFT JOIN business_clearance_req bb ON r.transaction_id = bb.transaction_id
+    LEFT JOIN incident_reports ir ON r.transaction_id = ir.transaction_id
+
     WHERE r.userid = ?
     ORDER BY r.created_at DESC
   `;
@@ -1247,6 +1253,35 @@ app.get('/api/requests/user/:userid', (req, res) => {
   });
 });
 
+app.delete('/api/requests/:id', authenticateToken, (req, res) => {
+  const { id } = req.params;
+
+  const sql = `DELETE FROM request WHERE req_id = ?`;
+
+  db.run(sql, [id], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Failed to delete request" });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+
+    res.json({ message: "Request deleted successfully" });
+  });
+});
+
+app.delete("/api/council/delete/:id", (req, res) => {
+  const { id } = req.params;
+
+  db.run("DELETE FROM council WHERE council_id = ?", [id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: "Failed to delete member" });
+    }
+
+    res.json({ message: "Deleted successfully" });
+  });
+});
 // ===================== START SERVER =====================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

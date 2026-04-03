@@ -14,6 +14,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import PrintIcon from "@mui/icons-material/Print";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 // Templates
 import CertificateOfIndigency from "../certificates/CertificateOfIndigency";
@@ -22,27 +23,10 @@ import BarangayClearance from "../certificates/BarangayClearance";
 import BusinessClearance from "../certificates/BusinessClearance";
 import IncidentReport from "../certificates/IncidentReport";
 
-// ✅ SIMPLE PRINT CONTAINER (NO forwardRef needed)
-// const PrintWrapper = ({ children, innerRef }) => {
-//   return (
-//     <div
-//       ref={innerRef}
-//       style={{
-//         width: "210mm",
-//         minHeight: "297mm",
-//         backgroundColor: "white",
-//         padding: "20px"
-//       }}
-//     >
-//       {children}
-//     </div>
-//   );
-// };
-
 const RequestView = ({ open, onClose, request }) => {
   const [status, setStatus] = useState("pending");
   const [loading, setLoading] = useState(false);
-
+  const [officials, setOfficials] = useState([]); 
   const contentRef = useRef(null);
 
   // ✅ Template Mapping
@@ -56,7 +40,27 @@ const RequestView = ({ open, onClose, request }) => {
 
   const TemplateComponent = request ? templateMap[request.trans_id] : null;
 
-  // ✅ Document Details
+  // ✅ Fetch Active Officials and Sync Status
+  useEffect(() => {
+    if (open) {
+      // 1. Sync local status with the incoming request status
+      if (request) {
+        setStatus(request.status);
+      }
+
+      // 2. Fetch the active council members for the signatures
+      fetch('http://localhost:3001/api/council/active-officials')
+        .then((res) => res.json())
+        .then((data) => {
+          setOfficials(data);
+        })
+        .catch((err) => {
+          console.error("Error fetching officials:", err);
+        });
+    }
+  }, [open, request]);
+
+  // ✅ Document Details for Filename and UI
   const getDocDetails = () => {
     switch (request?.trans_id) {
       case 1: return { name: "Certificate_of_Indigency", color: "#1976d2" };
@@ -70,40 +74,33 @@ const RequestView = ({ open, onClose, request }) => {
 
   const docDetails = getDocDetails();
 
-  // ✅ PRINT (FIXED)
+  // ✅ PRINT LOGIC
   const handlePrint = useReactToPrint({
-  contentRef: contentRef, // Directly pass the ref here
-  documentTitle: `${docDetails.name}_${request?.user_name || "Record"}`,
-  onAfterPrint: () => console.log("Print success"),
-  onPrintError: (error) => console.error("Print failed", error),
-});
+    contentRef: contentRef,
+    documentTitle: `${docDetails.name}_${request?.user_name || "Record"}`,
+    onAfterPrint: () => console.log("Print success"),
+    onPrintError: (error) => console.error("Print failed", error),
+  });
 
-  // ✅ DOWNLOAD PDF
+  // ✅ DOWNLOAD PDF LOGIC
   const handleDownload = () => {
     if (!contentRef.current) return;
 
-    html2pdf()
-      .set({
-        margin: 0,
-        filename: `${docDetails.name}_${request?.user_name || "Document"}.pdf`,
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: { scale: 3 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-      })
-      .from(contentRef.current)
-      .save();
+    const element = contentRef.current;
+    const opt = {
+      margin: 0,
+      filename: `${docDetails.name}_${request?.user_name || "Document"}.pdf`,
+      image: { type: "jpeg", quality: 1 },
+      html2canvas: { scale: 3, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    };
+
+    html2pdf().set(opt).from(element).save();
   };
 
-  useEffect(() => {
-    if (request) {
-      setStatus(request.status);
-    }
-  }, [request]);
-
-  // ✅ STATUS UPDATE
+  // ✅ STATUS UPDATE (Approve/Reject)
   const handleStatusUpdate = async (newStatus) => {
     setLoading(true);
-
     try {
       const res = await fetch(
         `http://localhost:3001/api/requests/${request.req_id}/status`,
@@ -118,69 +115,169 @@ const RequestView = ({ open, onClose, request }) => {
       if (!res.ok) throw new Error(data.error);
 
       setStatus(newStatus);
+      // Using a snackbar here would be better, but keeping alert for now as per your original
       alert(`Status updated to ${newStatus}`);
     } catch (err) {
-      alert(err.message);
+      alert("Update failed: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDelete = async () => {
+  if (!window.confirm("Are you sure you want to delete this request?")) return;
+
+  setLoading(true);
+
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(
+      `http://localhost:3001/api/requests/${request.req_id}`,
+      {
+        method: "DELETE",
+        headers: {
+        Authorization: `Bearer ${token}`
+      }
+      }
+    );
+
+    // ✅ Safely read response as text first
+    const text = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+
+    if (!res.ok) throw new Error(data.message || data.error || text);
+
+    alert("Request deleted successfully");
+
+    onClose();
+    window.location.reload();
+
+  } catch (err) {
+    alert("Delete failed: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
   return (
     <>
-      {/* ✅ HIDDEN PRINT AREA — MUST ALWAYS EXIST */}
+      {/* ✅ HIDDEN PRINT AREA — This is what the PDF/Printer "sees" */}
       <div style={{ display: "none" }}>
-        <div ref={contentRef} style={{ width: "210mm", padding: "20px", backgroundColor: "white" }}>
-            {request && TemplateComponent && <TemplateComponent request={request} />}
+        <div ref={contentRef} style={{ width: "210mm", backgroundColor: "white" }}>
+          {request && TemplateComponent && (
+            <TemplateComponent request={request} officials={officials} />
+          )}
         </div>
       </div>
 
-      {/* ✅ UI */}
+      {/* ✅ MAIN UI DIALOG */}
       <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Box>Document Preview <Typography variant="caption">({docDetails.name})</Typography></Box>
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: 'center' }}>
+          <Box>
+            Document Preview 
+            <Typography variant="caption" sx={{ ml: 1, color: docDetails.color, fontWeight: 'bold' }}>
+              ({docDetails.name.replace(/_/g, ' ')})
+            </Typography>
+          </Box>
           <IconButton onClick={onClose}><CloseIcon /></IconButton>
         </DialogTitle>
 
-        <DialogContent>
+        <DialogContent dividers>
           <Grid container spacing={3}>
-            {/* PREVIEW PANEL */}
+            {/* LEFT PANEL: The actual document preview */}
             <Grid item xs={12} md={8}>
-              <Box sx={{ border: "1px solid #ccc", p: 2, minHeight: '400px', backgroundColor: '#f5f5f5' }}>
-                {request && TemplateComponent ? (
-                  <TemplateComponent request={request} />
-                ) : (
-                  <Typography>No preview available</Typography>
-                )}
+              <Box 
+                sx={{ 
+                  border: "1px solid #ccc", 
+                  p: 1, 
+                  minHeight: '500px', 
+                  backgroundColor: '#525659', // Dark grey background like a PDF viewer
+                  display: 'flex',
+                  justifyContent: 'center',
+                  overflowY: 'auto',
+                  maxHeight: '70vh'
+                }}
+              >
+                <Box sx={{ transform: 'scale(0.9)', transformOrigin: 'top center', backgroundColor: 'white', boxShadow: 3 }}>
+                  {request && TemplateComponent ? (
+                    <TemplateComponent request={request} officials={officials} />
+                  ) : (
+                    <Box sx={{ p: 5, backgroundColor: 'white' }}>
+                       <Typography color="textSecondary">No preview available for this request type.</Typography>
+                    </Box>
+                  )}
+                </Box>
               </Box>
             </Grid>
 
-            {/* ACTIONS */}
+            {/* RIGHT PANEL: Administrative Actions */}
             <Grid item xs={12} md={4}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Button variant="contained" color="success" onClick={() => handleStatusUpdate("accepted")} disabled={loading || status === "accepted"}>Approve</Button>
-                <Button variant="contained" color="error" onClick={() => handleStatusUpdate("rejected")} disabled={loading || status === "rejected"}>Reject</Button>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2, p: 1 }}>
+                <Typography variant="subtitle2" color="textSecondary">Administrative Actions</Typography>
                 
-                {/* Ensure handlePrint is called directly */}
                 <Button 
-                    variant="contained" 
-                    startIcon={<DownloadIcon />} 
-                    onClick={handleDownload} 
-                    disabled={status !== "accepted"}
+                  variant="contained" 
+                  color="success" 
+                  onClick={() => handleStatusUpdate("accepted")} 
+                  disabled={loading || status === "accepted"}
+                  fullWidth
                 >
-                    Download PDF
+                  Approve Request
                 </Button>
 
                 <Button 
-                    variant="outlined" 
-                    startIcon={<PrintIcon />} 
-                    onClick={() => handlePrint()} 
-                    disabled={status !== "accepted"}
+                  variant="contained" 
+                  color="error" 
+                  onClick={() => handleStatusUpdate("rejected")} 
+                  disabled={loading || status === "rejected"}
+                  fullWidth
                 >
-                    Print
+                  Reject Request
                 </Button>
 
-                <Typography>Status: <b>{status}</b></Typography>
+                <Button 
+                  variant="contained" 
+                  color="error" 
+                  startIcon={<DeleteIcon />}
+                  onClick={handleDelete}
+                  disabled={loading}
+                  fullWidth
+                >
+                  Delete Request
+                </Button>
+
+                <Typography variant="subtitle2" color="textSecondary">Export Options</Typography>
+                
+                <Button 
+                  variant="contained" 
+                  startIcon={<DownloadIcon />} 
+                  onClick={handleDownload} 
+                  disabled={status !== "accepted"}
+                  sx={{ backgroundColor: '#060745', '&:hover': { backgroundColor: '#0a0b63' } }}
+                >
+                  Download PDF
+                </Button>
+
+                <Button 
+                  variant="outlined" 
+                  startIcon={<PrintIcon />} 
+                  onClick={() => handlePrint()} 
+                  disabled={status !== "accepted"}
+                >
+                  Print Document
+                </Button>
+
+                <Box sx={{ mt: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0' }}>
+                  <Typography variant="body2">
+                    Current Status: <b style={{ textTransform: 'uppercase', color: status === 'accepted' ? 'green' : 'orange' }}>{status}</b>
+                  </Typography>
+                </Box>
               </Box>
             </Grid>
           </Grid>

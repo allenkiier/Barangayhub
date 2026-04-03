@@ -5,9 +5,10 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import CallIcon from '@mui/icons-material/Call';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 
-const BarangayClearance = ({ request }) => {
+const BarangayClearance = ({ request, officials }) => {
   const { transactionId: urlId } = useParams();
   const transactionId = request?.transaction_id || urlId;
+  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "__________________________";
 
   const [clearanceData, setClearanceData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +89,7 @@ const BarangayClearance = ({ request }) => {
               fontFamily: "'Old English Text MT', serif", 
               fontSize: '22px', 
               color: '#060745', 
-              marginTop: '5px'
+              marginTop: '3px'
             }}
           >
             Office of the Punong Barangay
@@ -178,7 +179,7 @@ const BarangayClearance = ({ request }) => {
         </Box>
 
         {/* ISSUANCE INFO */}
-        <Grid container sx={{ mt: 2, border: '1px solid black', bgcolor: '#d1d5db' }}>
+        <Grid container sx={{ mt: 1, border: '1px solid black', bgcolor: '#d1d5db' }}>
           <Grid item xs={4} sx={{ p: 0.5, borderRight: '1px solid black' }}>
             <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>Time Issued:</Typography>
             <Typography sx={{ fontSize: '12px' }}>{clearanceData.time_issued || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Typography>
@@ -194,14 +195,16 @@ const BarangayClearance = ({ request }) => {
         </Grid>
 
         {/* SIGNATORY */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'end', mt: 5, pr: 5, mb: 5}}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'end', mt: 5, pr: 5, mb: 2}}>
           <Box sx={{textAlign: 'center'}}>
-            <Typography sx={{ fontWeight: 900, fontSize: '18px'}}>PERCY M. RASGO</Typography>
+            <Typography sx={{ fontWeight: 900, fontSize: '18px'}}>{punongBarangay}</Typography>
             <Typography sx={{ fontSize: '14px'}}>Punong Barangay</Typography>
           </Box>
         </Box>
 
-        {/* FOOTER */}
+        <p className="text-justify" style={{ textIndent: '30px', marginBottom: '2px', fontSize: '11px', color: '#555' }}>
+              This certification is issued upon the request of the above-mentioned name for whatever legal purpose it may serve.
+        </p>
         <footer style={{ width: '100%', marginTop: 'auto', paddingBottom: '10px' }}>
           <hr style={{ height: '2px', backgroundColor: 'black', border: 'none', marginBottom: 5 }} />
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444" }}>

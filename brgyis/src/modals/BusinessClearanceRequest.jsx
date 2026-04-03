@@ -1,53 +1,61 @@
 import React, { useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent,
-  TextField, Button, Box
+  TextField, Button, Box,
+  FormControl, InputLabel, Select, MenuItem
 } from "@mui/material";
 
-const BusinessClearanceRequest = ({ open, onClose, userId }) => {
+const BusinessClearanceRequest = ({ open, onClose, userid }) => {
   const [tradeName, setTradeName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
+  const [appType, setAppType] = useState(""); // ✅ added
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!tradeName || !businessAddress) {
-      alert("All fields are required");
-      return;
-    }
+  if (!userid) {
+    alert("User ID is required");
+    return;
+  }
 
-    setLoading(true);
+  if (!tradeName || !businessAddress || !appType) {
+    alert("All fields are required");
+    return;
+  }
 
-    try {
-      const res = await fetch("http://localhost:3001/api/business-clearance/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userid: userId,
-          trade_name: tradeName,
-          business_address: businessAddress,
-        }),
-      });
+  setLoading(true);
 
-      const data = await res.json();
+  try {
+    const res = await fetch("http://localhost:3001/api/business-clearance/submit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userid: userid,
+        trade_name: tradeName,
+        business_address: businessAddress,
+        app_type: appType
+      }),
+    });
 
-      if (!res.ok) throw new Error(data.error);
+    const data = await res.json();
 
-      alert("Business Clearance submitted!");
-      onClose();
+    if (!res.ok) throw new Error(data.error);
 
-      // reset
-      setTradeName("");
-      setBusinessAddress("");
+    alert("Business Clearance submitted!");
+    onClose();
 
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setTradeName("");
+    setBusinessAddress("");
+    setAppType("");
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -55,6 +63,19 @@ const BusinessClearanceRequest = ({ open, onClose, userId }) => {
 
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+          <FormControl fullWidth>
+            <InputLabel id="app-type-label">Application Type</InputLabel>
+            <Select
+              labelId="app-type-label"
+              value={appType}
+              label="Application Type"
+              onChange={(e) => setAppType(e.target.value)}
+            >
+              <MenuItem value="new">New</MenuItem>
+              <MenuItem value="renewal">Renewal</MenuItem>
+              <MenuItem value="amendment">Amendment</MenuItem>
+            </Select>
+          </FormControl>
           
           <TextField
             label="Trade Name"
@@ -72,8 +93,12 @@ const BusinessClearanceRequest = ({ open, onClose, userId }) => {
             rows={2}
           />
 
+          {/* ✅ APPLICATION TYPE SELECT */}
+          
+
           <Button
             variant="contained"
+             sx={{background: "#060745"}}
             onClick={handleSubmit}
             disabled={loading}
           >

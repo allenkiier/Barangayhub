@@ -1,0 +1,197 @@
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Grid,
+  Box,
+  Button,
+  Typography,
+  IconButton
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import CancelIcon from "@mui/icons-material/Cancel";
+
+// Templates
+import CertificateOfIndigency from "../certificates/CertificateOfIndigency";
+import BarangayIDApplication from "../certificates/BarangayIDApplication";
+import BarangayClearance from "../certificates/BarangayClearance";
+import BusinessClearance from "../certificates/BusinessClearance";
+import IncidentReport from "../certificates/IncidentReport";
+
+const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [officials, setOfficials] = useState([]);
+
+  const contentRef = useRef(null);
+
+  // ✅ Template Mapping
+  const templateMap = {
+    1: CertificateOfIndigency,
+    2: BarangayIDApplication,
+    3: BarangayClearance,
+    4: BusinessClearance,
+    5: IncidentReport,
+  };
+
+  // ✅ Normalize trans_id to number
+  const TemplateComponent = request
+    ? templateMap[Number(request.trans_id)]
+    : null;
+
+  // ✅ Sync status + fetch officials
+  useEffect(() => {
+    if (open && request) {
+      setStatus(request.status);
+
+      fetch("http://localhost:3001/api/council/active-officials")
+        .then((res) => res.json())
+        .then((data) => setOfficials(data))
+        .catch((err) => console.error("Officials fetch error:", err));
+    }
+  }, [open, request]);
+
+  // ✅ Cancel Request
+  const handleCancel = async () => {
+    if (!request) return;
+
+    const confirmCancel = window.confirm("Are you sure you want to cancel this request?");
+    if (!confirmCancel) return;
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(
+        `http://localhost:3001/api/requests/${request.req_id}/status`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "cancelled" }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setStatus("cancelled");
+
+      if (onRequestUpdated) {
+        onRequestUpdated({ ...request, status: "cancelled" });
+      }
+
+      alert("Request cancelled successfully");
+    } catch (err) {
+      alert("Cancel failed: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Hidden print content (optional reuse) */}
+      <div style={{ display: "none" }}>
+        <div ref={contentRef} style={{ width: "210mm", backgroundColor: "white" }}>
+          {request && TemplateComponent && (
+            <TemplateComponent request={request} officials={officials} />
+          )}
+        </div>
+      </div>
+
+      <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+        {/* HEADER */}
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Typography variant="h6">
+            Request Preview
+          </Typography>
+
+          <IconButton onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <Grid container spacing={3}>
+            
+            {/* LEFT: Preview */}
+            <Grid item xs={12} md={8}>
+              <Box
+                sx={{
+                  border: "1px solid #ccc",
+                  p: 2,
+                  minHeight: "500px",
+                  backgroundColor: "#f5f5f5",
+                  display: "flex",
+                  justifyContent: "center",
+                  overflowY: "auto",
+                  maxHeight: "70vh"
+                }}
+              >
+                <Box
+                  sx={{
+                    backgroundColor: "white",
+                    boxShadow: 3,
+                    transform: "scale(0.95)",
+                    transformOrigin: "top center"
+                  }}
+                >
+                  {request && TemplateComponent ? (
+                    <TemplateComponent request={request} officials={officials} />
+                  ) : (
+                    <Box sx={{ p: 4 }}>
+                      <Typography color="text.secondary">
+                        No preview available
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </Grid>
+
+            {/* RIGHT: Actions */}
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                
+                <Typography variant="subtitle2" color="text.secondary">
+                  Request Actions
+                </Typography>
+
+                <Box>
+                  <Typography variant="body2">
+                    Status:{" "}
+                    <b style={{ textTransform: "uppercase" }}>
+                      {status}
+                    </b>
+                  </Typography>
+                </Box>
+
+                {/* Cancel Button */}
+                <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<CancelIcon />}
+                  onClick={handleCancel}
+                  disabled={loading || status !== "pending"}
+                  fullWidth
+                >
+                  {status === "pending" ? "Cancel Request" : "Cannot Cancel"}
+                </Button>
+
+                {status !== "pending" && (
+                  <Typography variant="caption" color="text.secondary">
+                    Only pending requests can be cancelled.
+                  </Typography>
+                )}
+
+              </Box>
+            </Grid>
+
+          </Grid>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+export default UserRequestView;

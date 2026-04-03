@@ -72,15 +72,15 @@ const OrganizationalChart = () => {
   if (!chartData) return <Typography>No council data available.</Typography>;
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4, textAlign: "center" }}>
+    <Container maxWidth="lg" sx={{ mt: 2, mb: 2, textAlign: "center" }}>
       <Typography variant="h4" align="center" sx={{ fontWeight: 'bold' }}>
         Barangay Joyao Joyao Organizational Structure
       </Typography>
-      <Typography variant="h6" align="center" gutterBottom sx={{ fontWeight: 'bold', mb: 4 }}>
+      <Typography variant="h6" align="center" gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
         Numancia, Aklan
       </Typography>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         
         {/* ROW 1: Punong Barangay */}
         <Grid container justifyContent="center" direction="row">
@@ -101,7 +101,7 @@ const OrganizationalChart = () => {
 
         {/* ROW 2: SB Members */}
         <Box>
-          <Typography variant="h6" align="center" gutterBottom color="primary" sx={{ mb: 2 }}>
+          <Typography variant="h6" align="center" gutterBottom color="primary" sx={{ mb: 1 }}>
             Sangguniang Barangay Members
           </Typography>
           <Grid container spacing={3} justifyContent="center" direction="row">
@@ -136,7 +136,7 @@ const OrganizationalChart = () => {
 
         {/* ROW 4: Staff (Secretary, Treasurer, Clerk) */}
         <Box>
-          <Grid container spacing={3} justifyContent="center" direction="row">
+          <Grid container spacing={2} justifyContent="center" direction="row">
             {chartData.staff?.length > 0 ? (
               chartData.staff.map((m) => (
                 <Grid item key={m.council_id} xs="auto">

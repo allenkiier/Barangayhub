@@ -58,10 +58,10 @@ export default function UserLogin() {
 
       const data = await response.json();
       if (!response.ok) {
-        showError(data.error || "Login failed");
-        return;
-      }
-
+          showError(data.error || "Login failed");
+          return;
+        }
+      localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data));
       localStorage.setItem("userid", data.userid);
 

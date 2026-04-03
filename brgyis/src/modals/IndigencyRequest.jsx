@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Grid, Box,
-  CircularProgress, Typography
+  CircularProgress, Typography, MenuItem
 } from '@mui/material';
 
 const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [appType, setAppType] = useState('indigency');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -53,13 +55,21 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
       return;
     }
 
+    if (!appType) {
+      alert("Please select application type");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       const res = await fetch('http://localhost:3001/api/indigency/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userid: resolvedUserId })
+        body: JSON.stringify({
+          userid: resolvedUserId,
+          app_type: appType
+        })
       });
 
       const data = await res.json();
@@ -80,50 +90,67 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
   // ================= UI =================
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-       <DialogTitle>{serviceName || "Certificate of Indigency"}</DialogTitle>
+      <DialogTitle>{serviceName || "Certificate of Indigency"}</DialogTitle>
 
       <DialogContent>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 7 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center'}}>
             <CircularProgress />
           </Box>
-        ) : (
+            ) : (
           <Grid container spacing={2} py={3}>
-            <Grid sx={{display: "flex", flexDirection: "column"}}>
+            <Grid sx={{ display: "flex", flexDirection: "column" }}>
+              
+              {/* APPLICATION TYPE SELECT */}
+              <Grid item xs={12} marginBottom={3}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Application Type"
+                  value={appType}
+                  onChange={(e) => setAppType(e.target.value)}
+                >
+                  <MenuItem value="indigency">New</MenuItem>
+                  <MenuItem value="clearance">Renew</MenuItem>
+                  <MenuItem value="replacement">Reissuance (lost or damaged)</MenuItem>
+                </TextField>
+              </Grid>
+
               <Grid item xs={12} marginBottom={3}>
                 <TextField fullWidth label="Full Name" value={formData.name || ''} InputProps={{ readOnly: true }} />
               </Grid>
 
-              <Grid item xs={4} sx={{display: "flex", flexDirection: 'row'}} gap={2}>
-                <TextField sx={{width: "100px"}} label="Age" value={formData.age || ''} InputProps={{ readOnly: true }} />
-                <TextField  label="Sex" value={formData.sex || ''} InputProps={{ readOnly: true }} />
-                <TextField  label="Civil Status" value={formData.civilStatus || ''} InputProps={{ readOnly: true }} />
+              <Grid item xs={4} sx={{ display: "flex", flexDirection: 'row' }} gap={2}>
+                <TextField sx={{ width: "100px" }} label="Age" value={formData.age || ''} InputProps={{ readOnly: true }} />
+                <TextField label="Sex" value={formData.sex || ''} InputProps={{ readOnly: true }} />
+                <TextField label="Civil Status" value={formData.civilStatus || ''} InputProps={{ readOnly: true }} />
               </Grid>
 
               <Grid item xs={12} my={2}>
                 <Typography variant="subtitle2">Address</Typography>
               </Grid>
 
-              <Grid item xs={12} gap={3} sx={{display: "flex", flexDirection: "row", wrap: "wrap", justifyContent: "space-between", marginBottom: 3}}>
-                <TextField sx={{width: "100px"}} label="House No." value={formData.house_no || ''} InputProps={{ readOnly: true }} />
-                <TextField sx={{width: "200px"}} label="Street" value={formData.street || ''} InputProps={{ readOnly: true }} />
-                <TextField sx={{width: "200px"}} label="Barangay" value={formData.barangay || ''} InputProps={{ readOnly: true }} />
-                
+              <Grid item xs={12} gap={3} sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 3 }}>
+                <TextField sx={{ width: "100px" }} label="House No." value={formData.house_no || ''} InputProps={{ readOnly: true }} />
+                <TextField sx={{ width: "200px" }} label="Street" value={formData.street || ''} InputProps={{ readOnly: true }} />
+                <TextField sx={{ width: "200px" }} label="Barangay" value={formData.barangay || ''} InputProps={{ readOnly: true }} />
               </Grid>
-              <Grid item xs={12} gap={3} sx={{display: "flex", flexDirection: "row", wrap: "wrap", justifyContent: "space-between"}}>
-                <TextField sx={{width: "200px"}} label="Municipality" value={formData.municipality || ''} InputProps={{ readOnly: true }} />
-                <TextField sx={{width: "200px"}} label="Province" value={formData.province || ''} InputProps={{ readOnly: true }} />
-                <TextField sx={{width: "200px"}} label="Province" value={formData.province || ''} InputProps={{ readOnly: true }} />
+
+              <Grid item xs={12} gap={3} sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" }}>
+                <TextField sx={{ width: "200px" }} label="Municipality" value={formData.municipality || ''} InputProps={{ readOnly: true }} />
+                <TextField sx={{ width: "200px" }} label="Province" value={formData.province || ''} InputProps={{ readOnly: true }} />
               </Grid>
+
             </Grid>
           </Grid>
         )}
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+      <DialogActions sx={{marginBottom: 2, marginRight: 3}}>
+        <Button onClick={onClose} sx={{color: "#060745"}}>Cancel</Button>
         <Button
           onClick={handleSubmit}
+          sx={{background: "#060745"}}
           variant="contained"
           disabled={loading || submitting}
         >

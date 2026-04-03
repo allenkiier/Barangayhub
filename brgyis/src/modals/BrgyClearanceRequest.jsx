@@ -1,118 +1,167 @@
 import React, { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  TextField,
-  MenuItem,
-  Grid,
-  Box
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Button, TextField, Grid, Box, CircularProgress, MenuItem
 } from "@mui/material";
 
-const BrgyClearanceRequest = ({ open, onClose, userId }) => {
-  const [user, setUser] = useState(null);
+const BrgyClearanceRequest = ({ open, onClose }) => {
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [userid, setUserid] = useState(null);
   const [purpose, setPurpose] = useState("");
 
-  useEffect(() => {
-    if (open && userId) {
-      fetch(`http://localhost:3001/api/user/${userId}`)
-        .then(res => res.json())
-        .then(data => setUser(data))
-        .catch(err => console.error(err));
-    }
-  }, [open, userId]);
+  const [formData, setFormData] = useState({
+    name: "",
+    sex: "",
+    birthdate: "",
+    birthplace: "",
+    house_no: "",
+    street: "",
+    barangay: "",
+    municipality: "",
+    province: ""
+  });
 
+  // ================= GET USER =================
+  useEffect(() => {
+    if (open) {
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      const uid = storedUser?.userid;
+
+      if (!uid) {
+        alert("User not logged in");
+        return;
+      }
+
+      setUserid(uid);
+      setLoading(true);
+
+      fetch(`http://localhost:3001/api/user/${uid}`)
+        .then(res => res.json())
+        .then(data => {
+          setFormData({
+            name: data.user_name,
+            sex: data.sex,
+            birthdate: data.birthdate,
+            birthplace: data.birthplace,
+            house_no: data.house_no,
+            street: data.street,
+            barangay: data.barangay,
+            municipality: data.municipality,
+            province: data.province
+          });
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoading(false);
+        });
+    }
+  }, [open]);
+
+  // ================= SUBMIT =================
   const handleSubmit = async () => {
+    if (!userid) {
+      alert("Missing user ID");
+      return;
+    }
+
     if (!purpose) {
       alert("Please select a purpose");
       return;
     }
 
+    setSubmitting(true);
+
     try {
       const res = await fetch("http://localhost:3001/api/brgy-clearance/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-          userid: userId,
+          userid,
           purpose
         })
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Submission failed");
-      }
+      if (!res.ok) throw new Error(data.error);
 
-      alert("Request submitted successfully!");
-      setPurpose("");
+      alert("✅ Request submitted successfully!");
       onClose();
 
     } catch (err) {
       console.error(err);
       alert(err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (!user) return null;
-
-  const address = `${user.house_no || ""} ${user.street || ""}, ${user.barangay || ""}, ${user.municipality || ""}, ${user.province || ""}`;
-
+  // ================= UI =================
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Barangay Clearance Request</DialogTitle>
 
-      <DialogContent dividers>
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h6">User Information</Typography>
-        </Box>
+      <DialogContent>
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Grid container spacing={2} sx={{display: "flex", flexDirection:"column", marginTop: 2}}>
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <TextField fullWidth label="Name" value={user.user_name || ""} InputProps={{ readOnly: true }} />
-          </Grid>
+            <Grid item xs={12}>
+              <TextField
+                select
+                sx={{width: "25%"}}
+                label="Application Type"
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+              >
+                <MenuItem value="new">New</MenuItem>
+                <MenuItem value="renew">Renew</MenuItem>
+                <MenuItem value="replacement">Reissuance (lost or damaged)</MenuItem>
+              </TextField>
+            </Grid>
+            {/* READ ONLY USER INFO */}
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Name" value={formData.name} InputProps={{ readOnly: true }} />
+            </Grid>
 
-          <Grid item xs={12} sm={6}>
-            <TextField fullWidth label="Sex" value={user.sex || ""} InputProps={{ readOnly: true }} />
-          </Grid>
+            <Grid item xs={12} sm={6} sx={{display: "flex", flexDirection:"row", justifyContent: "start", gap: 3}}>
+              <TextField sx={{width: "30%"}} label="Sex" value={formData.sex} InputProps={{ readOnly: true }} />
+              <TextField sx={{width: "30%"}} label="Birthdate" value={formData.birthdate} InputProps={{ readOnly: true }} />
+              <TextField sx={{width: "30%"}} label="Birthplace" value={formData.birthplace} InputProps={{ readOnly: true }} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Address"
+                value={`${formData.house_no} ${formData.street}, ${formData.barangay}, ${formData.municipality}, ${formData.province}`}
+                InputProps={{ readOnly: true }}
+              />
+            </Grid>
 
-          <Grid item xs={12}>
-            <TextField fullWidth label="Address" value={address} InputProps={{ readOnly: true }} />
-          </Grid>
+            {/* PURPOSE */}
+            
 
-          <Grid item xs={12} sm={6}>
-            <TextField fullWidth label="Birthdate" value={user.birthdate || ""} InputProps={{ readOnly: true }} />
           </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField fullWidth label="Birthplace" value={user.birthplace || ""} InputProps={{ readOnly: true }} />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              select
-              fullWidth
-              label="Purpose"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-            >
-              <MenuItem value="Employment">Employment</MenuItem>
-              <MenuItem value="Business Operation">Business Operation</MenuItem>
-              <MenuItem value="Government Documents and Services">Government Documents and Services</MenuItem>
-              <MenuItem value="Financial Service">Financial Service</MenuItem>
-              <MenuItem value="Legal Transaction">Legal Transaction</MenuItem>
-            </TextField>
-          </Grid>
-        </Grid>
+        )}
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained">
-          Submit Request
+      <DialogActions sx={{marginBottom: 2, marginRight: 3}}>
+        <Button onClick={onClose} sx={{color: "#060745"}}>Cancel</Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          sx={{background: "#060745"}}
+          disabled={loading || submitting}
+        >
+          {submitting ? "Submitting..." : "Submit"}
         </Button>
       </DialogActions>
     </Dialog>

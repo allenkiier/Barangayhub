@@ -5,9 +5,10 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import CallIcon from '@mui/icons-material/Call';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 
-const CertificateOfIndigency = ({ request }) => {
+const CertificateOfIndigency = ({ request, officials}) => {
   const { transactionId: urlId } = useParams(); 
   const transactionId = request?.transaction_id || urlId;
+  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "__________________________";
 
   const [certData, setCertData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -95,14 +96,16 @@ const CertificateOfIndigency = ({ request }) => {
             <div style={{ marginTop: '80px', display: "flex", justifyContent: "flex-end" }}>
                 <div style={{ textAlign: "center", width: "200px" }}>
                   <p style={{ fontWeight: 900, borderBottom: '1px solid black', textTransform: 'uppercase' }}>
-                    PERCY M. RASGO
+                    {punongBarangay}
                   </p>
                   <p style={{fontSize:14}}>Punong Barangay</p>
                 </div>
             </div>
         </Box>
 
-        {/* FOOTER - Stays at the bottom because of flexGrow: 1 above */}
+        <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'gray' }}>
+          This is an official document generated via the Barangay E-Services System.
+        </Typography>
         <footer style={{ width: '100%' }}>
           <hr style={{ height: '2px', backgroundColor: '#060745', border: 'none', marginBottom: 10 }} />
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444" }}>

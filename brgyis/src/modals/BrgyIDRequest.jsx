@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Grid, Box, CircularProgress, Typography
+  Button, TextField, Grid, Box, CircularProgress, Typography, MenuItem
 } from "@mui/material";
 
 const BrgyIDRequest = ({ open, onClose, serviceName }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [appType, setAppType] = useState("new");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -83,6 +85,11 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
       return;
     }
 
+    if (!appType) {
+      alert("Please select application type");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -93,6 +100,7 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
         },
         body: JSON.stringify({
           userid,
+          app_type: appType, // ✅ added
           weight: formData.weight,
           height: formData.height,
           blood_type: formData.blood_type,
@@ -118,7 +126,7 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
 
   // ================= UI =================
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>{serviceName || "Barangay ID Request"}</DialogTitle>
 
       <DialogContent>
@@ -127,79 +135,78 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
             <CircularProgress />
           </Box>
         ) : (
-          <Grid container spacing={2}>
+          <Grid container spacing={2} sx={{display: "flex", flexDirection:"column", marginTop: 2}}>
+
+            {/* APPLICATION TYPE */}
+            <Grid item xs={12}>
+              <TextField
+                select
+                sx={{width: "40%"}}
+                label="Application Type"
+                value={appType}
+                onChange={(e) => setAppType(e.target.value)}
+              >
+                <MenuItem value="new">New</MenuItem>
+                <MenuItem value="renew">Renew</MenuItem>
+                <MenuItem value="replacement">Reissuance (lost or damaged)</MenuItem>
+              </TextField>
+            </Grid>
 
             {/* READ ONLY */}
-            <Grid item xs={12}>
-              <TextField fullWidth label="Full Name" value={formData.name} InputProps={{ readOnly: true }} />
+            <Grid item xs={8}>
+              <TextField sx={{width: "40%"}} label="Full Name" value={formData.name} InputProps={{ readOnly: true }} />
             </Grid>
 
-            <Grid item xs={6}>
-              <TextField fullWidth label="Sex" value={formData.sex} InputProps={{ readOnly: true }} />
+            <Grid item xs={5} sx={{display: "flex", flexDirection:"row", justifyContent: "start", gap: 3}}>
+              <TextField sx={{width: "20%"}} label="Sex" value={formData.sex} InputProps={{ readOnly: true }} />
+              <TextField sx={{width: "20%"}} label="Birthdate" value={formData.birthdate} InputProps={{ readOnly: true }} />
+              <TextField sx={{width: "30%"}} label="Birthplace" value={formData.birthplace} InputProps={{ readOnly: true }} />
             </Grid>
 
-            <Grid item xs={6}>
-              <TextField fullWidth label="Birthdate" value={formData.birthdate} InputProps={{ readOnly: true }} />
-            </Grid>
 
-            <Grid item xs={12}>
-              <TextField fullWidth label="Birthplace" value={formData.birthplace} InputProps={{ readOnly: true }} />
-            </Grid>
-
-            <Grid item xs={12}>
+            <Grid item xs={3}>
               <Typography variant="subtitle2">Address</Typography>
             </Grid>
 
+            <Grid item xs={4} sx={{display: "flex", justifyContent: "start", gap: 3}}>
+              <TextField sx={{width: "15%"}} label="House No." value={formData.house_no} InputProps={{ readOnly: true }} />
+              <TextField sx={{width: "25%"}} label="Street" value={formData.street} InputProps={{ readOnly: true }} />
+              <TextField sx={{width: "25%"}} label="Barangay" value={formData.barangay} InputProps={{ readOnly: true }} />
+            </Grid>
+
+            <Grid item xs={4} sx={{display: "flex", justifyContent: "start", gap: 3}}>
+              <TextField sx={{width: "35%"}} label="Municipality" value={formData.municipality} InputProps={{ readOnly: true }} />
+              <TextField sx={{width: "35%"}} label="Province" value={formData.province} InputProps={{ readOnly: true }} />
+            </Grid>
+
             <Grid item xs={4}>
-              <TextField fullWidth label="House No." value={formData.house_no} InputProps={{ readOnly: true }} />
+              <Typography variant="subtitle2">Fill-Ups</Typography>
             </Grid>
-
-            <Grid item xs={8}>
-              <TextField fullWidth label="Street" value={formData.street} InputProps={{ readOnly: true }} />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField fullWidth label="Barangay" value={formData.barangay} InputProps={{ readOnly: true }} />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField fullWidth label="Municipality" value={formData.municipality} InputProps={{ readOnly: true }} />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField fullWidth label="Province" value={formData.province} InputProps={{ readOnly: true }} />
-            </Grid>
-
             {/* USER INPUT */}
-            <Grid item xs={6}>
-              <TextField fullWidth label="Weight (kg)" name="weight" value={formData.weight} onChange={handleChange} />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField fullWidth label="Height (cm)" name="height" value={formData.height} onChange={handleChange} />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField fullWidth label="Blood Type" name="blood_type" value={formData.blood_type} onChange={handleChange} />
-            </Grid>
-
-            <Grid item xs={6}>
-              <TextField fullWidth label="Emergency Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} />
+            <Grid item xs={6} sx={{display: "flex", justifyContent: "start", gap: 3}}>
+              <TextField sx={{width: "30%"}} label="Weight (kg)" name="weight" value={formData.weight} onChange={handleChange} />
+              <TextField sx={{width: "30%"}} label="Height (cm)" name="height" value={formData.height} onChange={handleChange} />
+              <TextField sx={{width: "30%"}} label="Blood Type" name="blood_type" value={formData.blood_type} onChange={handleChange} />
             </Grid>
 
             <Grid item xs={12}>
-              <TextField fullWidth label="Contact Person Number" name="contact_person_no" value={formData.contact_person_no} onChange={handleChange} />
+              <Typography variant="subtitle2">Contact Person</Typography>
             </Grid>
 
+            <Grid item xs={6} sx={{display: "flex", justifyContent: "start", gap: 3}}>
+              <TextField sx={{width: "40%"}} label="Emergency Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} />
+              <TextField sx={{width: "30%"}} label="Contact Person Number" name="contact_person_no" value={formData.contact_person_no} onChange={handleChange} />
+            </Grid>
           </Grid>
         )}
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+      <DialogActions sx={{marginBottom: 2, marginRight: 3}}>
+        <Button onClick={onClose} sx={{color: "#060745"}}>Cancel</Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          sx={{background: "#060745"}}
           disabled={loading || submitting}
         >
           {submitting ? "Submitting..." : "Submit"}

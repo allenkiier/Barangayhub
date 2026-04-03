@@ -4,9 +4,14 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import CallIcon from '@mui/icons-material/Call';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 
-const IncidentReport = ({ request }) => {
-  // Safety check: if request is null, show nothing
+
+
+
+const IncidentReport = ({ request, officials }) => {
   if (!request) return null;
+
+  const punongBarangay = officials?.find(o => o.role === 'Punong Barangay')?.name || "__________________________";
+  const barangaySecretary = officials?.find(o => o.role === 'Barangay Secretary')?.name || "__________________________";
 
   // Data mapping from the database object
   const reportData = {
@@ -121,20 +126,10 @@ const IncidentReport = ({ request }) => {
         </Box>
       </Box>
 
-      {/* Signature & Filing Section (As per your image) */}
-      {/* SIGNATURE & FILING SECTION - UNWRAPPED SINGLE ROW */}
       <Box sx={{ border: '1px solid black', mt: 4 }}>
         <Grid container wrap="nowrap"> 
           {/* Box 1: Reportee */}
-          <Grid item xs={4} sx={{ 
-            p: 1, 
-            borderRight: '1px solid black', 
-            minHeight: '140px', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            justifyContent: 'space-between',
-            flexBasis: '33.33%'
-          }}>
+          <Grid item xs={4} sx={{ p: 1, borderRight: '1px solid black', minHeight: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: "33.33%" }}>
             <Typography sx={{ fontSize: '10px', fontStyle: 'italic', lineHeight: 1.1 }}>
               Details stated above are true and correct to the best of my knowledge and belief.
             </Typography>
@@ -142,42 +137,27 @@ const IncidentReport = ({ request }) => {
               <Typography sx={{ fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', borderBottom: '1px solid black', display: 'inline-block', px: 1 }}>
                 {reportData.fullName}
               </Typography>
-              <Box>
-                <Typography sx={{ fontSize: '10px' }}>Reportee</Typography>
-              </Box>
+              <Typography sx={{ fontSize: '10px', display: 'block' }}>Reportee</Typography>
             </Box>
           </Grid>
 
-          {/* Box 2: Recorded By */}
-          <Grid item xs={4} sx={{ 
-            p: 1, 
-            borderRight: '1px solid black', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            justifyContent: 'space-between',
-            flexBasis: '33.33%'
-          }}>
+          {/* Box 2: Recorded By (Dynamic Secretary) */}
+          <Grid item xs={4} sx={{ p: 1, borderRight: '1px solid black', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: "33.33%" }}>
             <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>RECORDED BY:</Typography>
             <Box sx={{ textAlign: 'center', pb: 1 }}>
-              <Typography sx={{ fontWeight: 'bold', fontSize: '12px', borderBottom: '1px solid black', display: 'inline-block', px: 1 }}>
-                ED RIAN C. CUSTODIO
+              <Typography sx={{ fontWeight: 'bold', fontSize: '12px', borderBottom: '1px solid black', display: 'inline-block', px: 1, textTransform: 'uppercase' }}>
+                {barangaySecretary}
               </Typography>
-              <Typography sx={{ fontSize: '10px', mt: 0.5 }}>BSEC</Typography>
+              <Typography sx={{ fontSize: '10px', mt: 0.5 }}>Barangay Secretary</Typography>
             </Box>
           </Grid>
 
-          {/* Box 3: Received and Filed */}
-          <Grid item xs={4} sx={{ 
-            p: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            justifyContent: 'space-between',
-            flexBasis: '33.33%'
-          }}>
+          {/* Box 3: Received and Filed (Dynamic Captain) */}
+          <Grid item xs={4} sx={{ p: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: "33.33%" }}>
             <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>RECEIVED AND FILED:</Typography>
             <Box sx={{ textAlign: 'center', pb: 1 }}>
-              <Typography sx={{ fontWeight: 'bold', fontSize: '12px', borderBottom: '1px solid black', display: 'inline-block', px: 1 }}>
-                PERCY M. RASGO
+              <Typography sx={{ fontWeight: 'bold', fontSize: '12px', borderBottom: '1px solid black', display: 'inline-block', px: 1, textTransform: 'uppercase' }}>
+                {punongBarangay}
               </Typography>
               <Typography sx={{ fontSize: '10px', mt: 0.5 }}>Punong Barangay</Typography>
             </Box>
