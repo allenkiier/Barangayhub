@@ -1,0 +1,221 @@
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Grid
+} from "@mui/material";
+
+import AccessibilityNewIcon from "@mui/icons-material/AccessibilityNew";
+import OtherHousesIcon from "@mui/icons-material/OtherHouses";
+import Man2Icon from "@mui/icons-material/Man2";
+import WomanIcon from "@mui/icons-material/Woman";
+import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople";
+import WcIcon from "@mui/icons-material/Wc";
+import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
+import AccessibleIcon from "@mui/icons-material/Accessible";
+import ElderlyIcon from "@mui/icons-material/Elderly";
+import AddBusinessIcon from "@mui/icons-material/AddBusiness";
+
+import { PieChart } from "@mui/x-charts/PieChart";
+
+const Statistics = () => {
+  const [stats, setStats] = useState({
+    population: 0,
+    female: 0,
+    male: 0,
+    married: 0,
+    single: 0,
+    widowed: 0,
+    pwd: 0,
+    senior: 0,
+    households: 0,
+    businesses: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // ✅ Hover style
+  const hoverItem = {
+    display: "flex",
+    alignItems: "center",
+    px: 1,
+    py: 0.7,
+    borderRadius: 2,
+    transition: "all 0.2s ease",
+    cursor: "pointer",
+    "&:hover": {
+      backgroundColor: "#f5f5f5",
+      boxShadow: 2
+    }
+  };
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/statistics");
+        const data = await res.json();
+        setStats(data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load statistics");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" mt={5}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box mt={5} textAlign="center">
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
+
+  // ✅ PIE DATA
+  const genderData = [
+    { id: 0, value: stats.male, label: "Male" },
+    { id: 1, value: stats.female, label: "Female" },
+  ];
+
+  const specialData = [
+    { id: 0, value: stats.pwd, label: "PWD" },
+    { id: 1, value: stats.senior, label: "Senior" },
+  ];
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", pt: 2, width: "100%" }}>
+
+      {/* ================= STATS LIST ================= */}
+      <Grid container>
+        <Grid item xs={12} sx={{ display: "flex", flexDirection: "column", pl: 2, gap: 1}}>
+
+          <Box sx={{ ...hoverItem }}>
+            <AccessibilityNewIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Population: {stats.population}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <OtherHousesIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Households: {stats.households}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <Man2Icon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Male Counts: {stats.male}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <WomanIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Female Counts: {stats.female}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <EmojiPeopleIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Single Counts: {stats.single}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <WcIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Married Counts: {stats.married}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <GroupRemoveIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Widowed Counts: {stats.widowed}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <AccessibleIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>PWD Counts: {stats.pwd}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <ElderlyIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Senior Citizen Counts: {stats.senior}</Typography>
+          </Box>
+
+          <Box sx={{ ...hoverItem }}>
+            <AddBusinessIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
+            <Typography>Businesses: {stats.businesses}</Typography>
+          </Box>
+
+        </Grid>
+      </Grid>
+
+      {/* ================= PIE CHARTS ================= */}
+      <Grid container spacing={3} mt={2}>
+        <Grid
+          sx={{
+            pt: 1,
+            display: "flex",
+            justifyContent: "space-evenly",
+            flexDirection: "row",
+            width: "100%",
+            height: "200px"
+          }}
+        >
+          {/* Gender */}
+          <Grid item sx={{ width: "200px" }}>
+            <PieChart
+              series={[
+                {
+                  data: genderData,
+                  innerRadius: 30,
+                  outerRadius: 60,
+                  paddingAngle: 3,
+                  cornerRadius: 4,
+                  arcLabel: (item) => `${item.label}: ${item.value}`, // ✅ label + value
+                }
+              ]}
+              colors={["#060745", "#9e9e9e"]}
+              height={130}
+              slotProps={{ legend: { hidden: true } }}
+            />
+            <Typography textAlign="center">
+              Gender Distribution
+            </Typography>
+          </Grid>
+
+          {/* PWD / Senior */}
+          <Grid item sx={{ width: "200px" }}>
+            <PieChart
+              series={[
+                {
+                  data: specialData,
+                  innerRadius: 30,
+                  outerRadius: 60,
+                  paddingAngle: 3,
+                  cornerRadius: 4,
+                  arcLabel: (item) => `${item.label}: ${item.value}`, // ✅ label + value
+                }
+              ]}
+              colors={["#060745", "#9e9e9e"]}
+              height={130}
+              slotProps={{ legend: { hidden: true } }}
+            />
+            <Typography textAlign="center">
+              PWD / Senior Distribution
+            </Typography>
+          </Grid>
+
+        </Grid>
+      </Grid>
+
+    </Box>
+  );
+};
+
+export default Statistics;

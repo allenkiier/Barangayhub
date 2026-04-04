@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
 import AdminSideBar from '../components/AdminSideBar';
-import OpenMessages from '../components/OpenMesssages';
+import OpenMessages from '../dashboard-components/OpenMesssages';
+import { Box, Divider, Grid } from '@mui/material';
+import Statistics from '../dashboard-components/Statistics';
+import Residentials from '../dashboard-components/Residentials';  
+import TransactionPanel from '../dashboard-components/TransactionPanel';  
 
 const AdminDashboard = () => {
   const navigate = useNavigate(); // 2. Initialize navigate
@@ -68,8 +72,69 @@ const AdminDashboard = () => {
 
           <br />
           <h1>Admin Dashboard</h1> 
-          <br />
-          <OpenMessages />
+          <Divider style={{ marginTop: "10px", marginBottom: "10px", borderBottomWidth: "4px", backgroundColor: "#060745" }} />
+
+          {/* ================= Dashboard Area ================= */}
+          <Grid sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'start', alignItems: 'center', height: "70vh"}}>
+            <Box sx={{width: "80%", mr: 4, height: "100%"}}>
+                <Box sx={{ display: 'flex', flexDirection: 'row',  justifyContent: 'start', mb: 4}}>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "start", width: "30%"}}>
+                    <Statistics />
+                  </Box>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", width: "30%", gap: 2, marginRight: 4}}>
+                    <Residentials />
+                  </Box>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: "37%", border: "1px solid #ddd", borderRadius: "8px", p: 1    }}>
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: 190,
+                        position: "relative",
+                        overflow: "hidden",
+                        mt: 1 ,
+                        borderRadius: "8px",
+                      }}
+                    >
+                      {/* Image */}
+                      <Box
+                        component="img"
+                        src="/bryhall.jpg"
+                        alt="image"
+                        sx={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+
+                      {/* Vignette Overlay */}
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: "2px",
+                          pointerEvents: "none",
+                          background: `
+                            radial-gradient(
+                              circle at center,
+                              rgba(0,0,0,0) 40%,
+                              #060745 100%
+                            )
+                          `,
+                        }}
+                      />
+                    </Box>
+                    <TransactionPanel />
+                  </Box>
+                </Box>
+            </Box>
+            <Box sx={{ width: "23%" }}>
+                <OpenMessages />
+            </Box>
+          </Grid>    
         </div>
       </div>
     </div>

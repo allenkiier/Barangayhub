@@ -1392,6 +1392,192 @@ app.put('/api/users/:id', (req, res) => {
     }
   );
 });
+
+
+// ===================== STATISTICS =====================
+app.get('/api/statistics', (req, res) => {
+  const stats = {};
+
+  // 1. Population (non-admin users)
+  const populationQuery = `
+    SELECT COUNT(*) AS count 
+    FROM user 
+    WHERE isAdmin = 0
+  `;
+
+  // 2–5. Sex & Civil Status
+  const demographicQuery = `
+    SELECT 
+      SUM(CASE WHEN sex = 'Female' THEN 1 ELSE 0 END) AS female,
+      SUM(CASE WHEN sex = 'Male' THEN 1 ELSE 0 END) AS male,
+      SUM(CASE WHEN civil_status = 'Married' THEN 1 ELSE 0 END) AS married,
+      SUM(CASE WHEN civil_status = 'Single' THEN 1 ELSE 0 END) AS single,
+      SUM(CASE WHEN civil_status = 'Widowed' THEN 1 ELSE 0 END) AS widowed,
+      SUM(CASE WHEN isPWD = 1 THEN 1 ELSE 0 END) AS pwd,
+      SUM(CASE WHEN isSenior = 1 THEN 1 ELSE 0 END) AS senior
+    FROM user
+  `;
+
+  // 7. Unique households (residency count)
+  const residencyQuery = `
+    SELECT COUNT(DISTINCT house_no) AS count 
+    FROM user
+    WHERE house_no IS NOT NULL AND house_no != ''
+  `;
+
+  // 10. Accepted businesses
+  const businessQuery = `
+    SELECT COUNT(*) AS count
+    FROM request
+    WHERE trans_id = 4 AND status = 'accepted'
+  `;
+
+  // Execute queries sequentially
+  db.get(populationQuery, [], (err, popRow) => {
+    if (err) return res.status(500).json({ error: err.message });
+    stats.population = popRow.count;
+
+    db.get(demographicQuery, [], (err, demoRow) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      stats.female = demoRow.female || 0;
+      stats.male = demoRow.male || 0;
+      stats.married = demoRow.married || 0;
+      stats.single = demoRow.single || 0;
+      stats.widowed = demoRow.widowed || 0;
+      stats.pwd = demoRow.pwd || 0;
+      stats.senior = demoRow.senior || 0;
+
+      db.get(residencyQuery, [], (err, resRow) => {
+        if (err) return res.status(500).json({ error: err.message });
+        stats.households = resRow.count;
+
+        db.get(businessQuery, [], (err, busRow) => {
+          if (err) return res.status(500).json({ error: err.message });
+          stats.businesses = busRow.count;
+
+          // ✅ Final response
+          res.json(stats);
+        });
+      });
+    });
+  });
+});
+
+// ===================== RESIDENTIAL TREND =====================
+app.get("/api/statistics/residentials", (req, res) => {
+  const query = `
+    SELECT residence_start_date, birthdate
+    FROM user
+    WHERE residence_start_date IS NOT NULL
+  `;
+
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      console.error(err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    const yearlyMap = {};
+    let minors = 0;
+    let adults = 0;
+
+    const currentYear = new Date().getFullYear();
+
+    rows.forEach(row => {
+      // ---- Trend ----
+      if (row.residence_start_date) {
+        const year = new Date(row.residence_start_date).getFullYear();
+        if (!isNaN(year)) {
+          yearlyMap[year] = (yearlyMap[year] || 0) + 1;
+        }
+      }
+
+      // ---- Age ----
+      if (row.birthdate) {
+        const birthYear = new Date(row.birthdate).getFullYear();
+        const age = currentYear - birthYear;
+
+        if (!isNaN(age)) {
+          if (age < 18) minors++;
+          else adults++;
+        }
+      }
+    });
+
+    const trend = Object.keys(yearlyMap)
+      .sort((a, b) => a - b)
+      .map(year => ({
+        year: Number(year),
+        count: yearlyMap[year],
+      }));
+
+    const mostYear = trend.reduce((max, item) =>
+      !max || item.count > max.count ? item : max,
+      null
+    );
+
+    res.json({
+      trend,
+      mostYear,
+      demographics: {
+        minors,
+        adults,
+      },
+    });
+  });
+});
+
+// ===================== TRANSACTION COUNTS =====================
+app.get('/api/statistics/transactions', (req, res) => {
+  const query = `
+    SELECT 
+      t.trans_name,
+      COUNT(r.req_id) AS count
+    FROM transactions t
+    LEFT JOIN request r ON t.trans_id = r.trans_id
+    GROUP BY t.trans_id
+    ORDER BY t.trans_id ASC
+  `;
+
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      console.error("Transaction stats error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    // Convert into clean object format
+    const result = {
+      indigency: 0,
+      brgyId: 0,
+      clearance: 0,
+      business: 0,
+      incident: 0
+    };
+
+    rows.forEach(row => {
+      switch (row.trans_name) {
+        case "Indigency":
+          result.indigency = row.count;
+          break;
+        case "Barangay ID":
+          result.brgyId = row.count;
+          break;
+        case "Barangay Clearance":
+          result.clearance = row.count;
+          break;
+        case "Business Clearance":
+          result.business = row.count;
+          break;
+        case "Incident Report":
+          result.incident = row.count;
+          break;
+      }
+    });
+
+    res.json(result);
+  });
+});
 // ===================== START SERVER =====================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
