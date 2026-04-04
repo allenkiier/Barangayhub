@@ -7,7 +7,10 @@ import {
   Box,
   Button,
   Typography,
-  IconButton
+  IconButton,
+  Snackbar,
+  Alert,
+  DialogActions
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -24,9 +27,17 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
   const [loading, setLoading] = useState(false);
   const [officials, setOfficials] = useState([]);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
+
   const contentRef = useRef(null);
 
-  // ✅ Template Mapping
+  // ================= TEMPLATE MAP =================
   const templateMap = {
     1: CertificateOfIndigency,
     2: BarangayIDApplication,
@@ -35,12 +46,11 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
     5: IncidentReport,
   };
 
-  // ✅ Normalize trans_id to number
   const TemplateComponent = request
     ? templateMap[Number(request.trans_id)]
     : null;
 
-  // ✅ Sync status + fetch officials
+  // ================= FETCH =================
   useEffect(() => {
     if (open && request) {
       setStatus(request.status);
@@ -48,16 +58,20 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
       fetch("http://localhost:3001/api/council/active-officials")
         .then((res) => res.json())
         .then((data) => setOfficials(data))
-        .catch((err) => console.error("Officials fetch error:", err));
+        .catch((err) => {
+          console.error(err);
+          setSnackbar({
+            open: true,
+            message: "Failed to load officials",
+            severity: "error"
+          });
+        });
     }
   }, [open, request]);
 
-  // ✅ Cancel Request
+  // ================= CANCEL REQUEST =================
   const handleCancel = async () => {
     if (!request) return;
-
-    const confirmCancel = window.confirm("Are you sure you want to cancel this request?");
-    if (!confirmCancel) return;
 
     setLoading(true);
 
@@ -80,17 +94,28 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
         onRequestUpdated({ ...request, status: "cancelled" });
       }
 
-      alert("Request cancelled successfully");
+      setSnackbar({
+        open: true,
+        message: "Request cancelled successfully",
+        severity: "success"
+      });
+
     } catch (err) {
-      alert("Cancel failed: " + err.message);
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: err.message || "Cancel failed",
+        severity: "error"
+      });
     } finally {
       setLoading(false);
+      setConfirmOpen(false);
     }
   };
 
   return (
     <>
-      {/* Hidden print content (optional reuse) */}
+      {/* HIDDEN PRINT CONTENT */}
       <div style={{ display: "none" }}>
         <div ref={contentRef} style={{ width: "210mm", backgroundColor: "white" }}>
           {request && TemplateComponent && (
@@ -99,12 +124,10 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
         </div>
       </div>
 
+      {/* MAIN DIALOG */}
       <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-        {/* HEADER */}
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography variant="h6">
-            Request Preview
-          </Typography>
+          <Typography variant="h6">Request Preview</Typography>
 
           <IconButton onClick={onClose}>
             <CloseIcon />
@@ -113,8 +136,8 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
 
         <DialogContent dividers>
           <Grid container spacing={3}>
-            
-            {/* LEFT: Preview */}
+
+            {/* LEFT: PREVIEW */}
             <Grid item xs={12} md={8}>
               <Box
                 sx={{
@@ -149,10 +172,10 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
               </Box>
             </Grid>
 
-            {/* RIGHT: Actions */}
+            {/* RIGHT: ACTIONS */}
             <Grid item xs={12} md={4}>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                
+
                 <Typography variant="subtitle2" color="text.secondary">
                   Request Actions
                 </Typography>
@@ -166,12 +189,12 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
                   </Typography>
                 </Box>
 
-                {/* Cancel Button */}
+                {/* CANCEL BUTTON */}
                 <Button
                   variant="contained"
                   color="error"
                   startIcon={<CancelIcon />}
-                  onClick={handleCancel}
+                  onClick={() => setConfirmOpen(true)}
                   disabled={loading || status !== "pending"}
                   fullWidth
                 >
@@ -190,6 +213,48 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
           </Grid>
         </DialogContent>
       </Dialog>
+
+      {/* ✅ CONFIRMATION DIALOG */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Cancellation</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to cancel this request?
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>
+            No
+          </Button>
+          <Button
+            onClick={handleCancel}
+            variant="contained"
+            color="error"
+          >
+            Yes, Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ✅ SNACKBAR */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

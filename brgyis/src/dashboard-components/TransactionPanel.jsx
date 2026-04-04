@@ -45,36 +45,36 @@ const TransactionPanel = () => {
       <Grid container spacing={1} sx={{display: "flex", flexDirection: "column"}}>
         <Grid item xs={12} md={4}>
           <Paper sx={{ px:2, py: 0.7, textAlign: "center", display: "flex", flexDirection: "row", justifyContent: "space-between"}}>
-            <Typography variant="subtitle1">Indigency</Typography>
-            <Typography variant="h5">{data?.indigency || 0}</Typography>
+            <Typography>Indigency</Typography>
+            <Typography>{data?.indigency || 0}</Typography>
           </Paper>
         </Grid>
 
         <Grid item xs={12} md={4}>
           <Paper sx={{ px:2, py: 0.7, textAlign: "center", display: "flex", flexDirection: "row", justifyContent: "space-between"}}>
-            <Typography variant="subtitle1">Barangay ID</Typography>
-            <Typography variant="h5">{data?.brgyId || 0}</Typography>
+            <Typography>Barangay ID</Typography>
+            <Typography>{data?.brgyId || 0}</Typography>
           </Paper>
         </Grid>
 
         <Grid item xs={12} md={4}>
           <Paper sx={{px:2, py: 0.7, textAlign: "center", display: "flex", flexDirection: "row", justifyContent: "space-between"}}>
-            <Typography variant="subtitle1">Clearance</Typography>
-            <Typography variant="h5">{data?.clearance || 0}</Typography>
+            <Typography>Clearance</Typography>
+            <Typography>{data?.clearance || 0}</Typography>
           </Paper>
         </Grid>
 
         <Grid item xs={12} md={6}>
           <Paper sx={{ px:2, py: 0.7, textAlign: "center", display: "flex", flexDirection: "row", justifyContent: "space-between"}}>
-            <Typography variant="subtitle1">Business Clearance</Typography>
-            <Typography variant="h5">{data?.business || 0}</Typography>
+            <Typography>Business Clearance</Typography>
+            <Typography>{data?.business || 0}</Typography>
           </Paper>
         </Grid>
 
         <Grid item xs={12} md={6}>
           <Paper sx={{px:2, py: 0.7, textAlign: "center", display: "flex", flexDirection: "row", justifyContent: "space-between" }}>
-            <Typography variant="subtitle1">Incident Reports</Typography>
-            <Typography variant="h5">{data?.incident || 0}</Typography>
+            <Typography>Incident Reports</Typography>
+            <Typography>{data?.incident || 0}</Typography>
           </Paper>
         </Grid>
       </Grid>

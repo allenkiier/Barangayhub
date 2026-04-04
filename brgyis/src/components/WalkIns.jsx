@@ -7,7 +7,13 @@ import {
   TextField, 
   Button, 
   Chip, 
-  Stack 
+  Stack,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import CreateIcon from '@mui/icons-material/Create';
 
@@ -20,13 +26,32 @@ const WalkIns = () => {
   const [narrative, setNarrative] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
   const handleToggle = () => setExpanded(!expanded);
 
-  const handleSubmit = async () => {
-    if (!narrative.trim()) {
-      alert("Please enter your message.");
-      return;
+  // ================= VALIDATION =================
+  const validateForm = () => {
+    if (!sender.trim() || !contactNum.trim() || !narrative.trim()) {
+      setSnackbar({
+        open: true,
+        message: "All fields are required",
+        severity: "error"
+      });
+      return false;
     }
+    return true;
+  };
+
+  // ================= SUBMIT =================
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
     setLoading(true);
 
@@ -50,24 +75,35 @@ const WalkIns = () => {
 
       const data = await res.json();
 
-      if (res.ok) {
-        alert(`${type} submitted successfully!`);
-
-        // reset form
-        setSender('');
-        setContactNum('');
-        setNarrative('');
-        setType('suggestion');
-        setExpanded(false);
-      } else {
-        alert(data.error || "Submission failed");
+      if (!res.ok) {
+        throw new Error(data.error || "Submission failed");
       }
+
+      // SUCCESS
+      setSnackbar({
+        open: true,
+        message: `${type} submitted successfully!`,
+        severity: "success"
+      });
+
+      // reset form
+      setSender('');
+      setContactNum('');
+      setNarrative('');
+      setType('suggestion');
+      setExpanded(false);
+
     } catch (error) {
       console.error(error);
-      alert("Server error");
+      setSnackbar({
+        open: true,
+        message: error.message || "Server error",
+        severity: "error"
+      });
     }
 
     setLoading(false);
+    setConfirmOpen(false);
   };
 
   const inputStyle = {
@@ -81,45 +117,35 @@ const WalkIns = () => {
 
   return (
     <Box sx={{ width: '100%', maxWidth: 450 }}>
-      {/* Trigger Row */}
-      <Stack 
-        direction="row" 
-        spacing={2} 
-        alignItems="center" 
-        sx={{ mb: 2, position: 'relative', zIndex: 2 }}
-      >
+      
+      {/* TRIGGER */}
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
         <IconButton 
           onClick={handleToggle}
           sx={{ 
             backgroundColor: '#060745', 
             color: 'white',
             transform: expanded ? 'rotate(45deg)' : 'rotate(0deg)',
-            transition: 'transform 0.3s ease-in-out',
+            transition: 'transform 0.3s',
             '&:hover': { backgroundColor: '#0a0c6e' },
             boxShadow: 3
           }}
         >
           <CreateIcon />
         </IconButton>
-        
+
         <Typography 
           variant="h6"
           onClick={handleToggle}
-          sx={{ 
-            color: '#060745',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            whiteSpace: 'nowrap',
-            transition: 'opacity 0.2s ease-in-out',
-          }}
+          sx={{ color: '#060745', cursor: 'pointer', fontWeight: 'bold' }}
         >
           {expanded ? "Tell us about it!" : "Do you have any suggestions or complaints?"}
         </Typography>
       </Stack>
 
-      {/* Expandable Form */}
+      {/* FORM */}
       <Collapse in={expanded}>
-        <Box sx={{ p: 1, background: 'transparent' }}>
+        <Box sx={{ p: 1 }}>
           <Stack spacing={2.5}>
 
             <TextField 
@@ -129,6 +155,7 @@ const WalkIns = () => {
               sx={inputStyle} 
               value={sender}
               onChange={(e) => setSender(e.target.value)}
+              required
             />
 
             <TextField 
@@ -138,10 +165,11 @@ const WalkIns = () => {
               sx={inputStyle} 
               value={contactNum}
               onChange={(e) => setContactNum(e.target.value)}
+              required
             />
             
             <Box>
-              <Typography variant="caption" display="block" sx={{ mb: 1, fontWeight: 'bold', color: '#060745' }}>
+              <Typography variant="caption" sx={{ mb: 1, fontWeight: 'bold', color: '#060745' }}>
                 TYPE OF FEEDBACK
               </Typography>
 
@@ -150,24 +178,12 @@ const WalkIns = () => {
                   label="Suggestion" 
                   variant={type === 'suggestion' ? "filled" : "outlined"}
                   onClick={() => setType('suggestion')}
-                  sx={{
-                    borderColor: '#060745',
-                    color: type === 'suggestion' ? 'white' : '#060745',
-                    backgroundColor: type === 'suggestion' ? '#060745' : 'transparent',
-                    '&:hover': { backgroundColor: type === 'suggestion' ? '#0a0c6e' : 'rgba(6, 7, 69, 0.05)' }
-                  }}
                 />
 
                 <Chip 
                   label="Complaint" 
                   variant={type === 'complaint' ? "filled" : "outlined"}
                   onClick={() => setType('complaint')}
-                  sx={{
-                    borderColor: '#d32f2f',
-                    color: type === 'complaint' ? 'white' : '#d32f2f',
-                    backgroundColor: type === 'complaint' ? '#d32f2f' : 'transparent',
-                    '&:hover': { backgroundColor: type === 'complaint' ? '#b71c1c' : 'rgba(211, 47, 47, 0.05)' }
-                  }}
                 />
               </Stack>
             </Box>
@@ -181,28 +197,68 @@ const WalkIns = () => {
               sx={inputStyle}
               value={narrative}
               onChange={(e) => setNarrative(e.target.value)}
+              required
             />
 
             <Button 
               variant="contained" 
               fullWidth
-              onClick={handleSubmit}
+              onClick={() => {
+                if (validateForm()) setConfirmOpen(true);
+              }}
               disabled={loading}
               sx={{ 
                 mt: 2,
                 py: 1.2,
                 borderRadius: '8px',
-                backgroundColor: '#060745', 
-                fontWeight: 'bold',
-                '&:hover': { backgroundColor: '#0a0c6e' } 
+                backgroundColor: '#060745'
               }}
             >
-              {loading ? "Submitting..." : "Submit Form"}
+              Submit Form
             </Button>
 
           </Stack>
         </Box>
       </Collapse>
+
+      {/* CONFIRMATION DIALOG */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Submission</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to submit this {type}?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            disabled={loading}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* SNACKBAR */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
     </Box>
   );
 };

@@ -36,18 +36,17 @@ const Statistics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ✅ Hover style
   const hoverItem = {
     display: "flex",
     alignItems: "center",
-    px: 1,
+    px: 0.4,
     py: 0.7,
     borderRadius: 2,
     transition: "all 0.2s ease",
     cursor: "pointer",
     "&:hover": {
       backgroundColor: "#f5f5f5",
-      boxShadow: 2
+      boxShadow: 1
     }
   };
 
@@ -84,7 +83,6 @@ const Statistics = () => {
     );
   }
 
-  // ✅ PIE DATA
   const genderData = [
     { id: 0, value: stats.male, label: "Male" },
     { id: 1, value: stats.female, label: "Female" },
@@ -96,11 +94,11 @@ const Statistics = () => {
   ];
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", pt: 2, width: "100%" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
 
       {/* ================= STATS LIST ================= */}
       <Grid container>
-        <Grid item xs={12} sx={{ display: "flex", flexDirection: "column", pl: 2, gap: 1}}>
+        <Grid item xs={12} sx={{ display: "flex", flexDirection: "column", pl: 2}}>
 
           <Box sx={{ ...hoverItem }}>
             <AccessibilityNewIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
@@ -156,7 +154,7 @@ const Statistics = () => {
       </Grid>
 
       {/* ================= PIE CHARTS ================= */}
-      <Grid container spacing={3} mt={2}>
+      <Grid container spacing={3} mt={0}>
         <Grid
           sx={{
             pt: 1,
@@ -164,7 +162,7 @@ const Statistics = () => {
             justifyContent: "space-evenly",
             flexDirection: "row",
             width: "100%",
-            height: "200px"
+            height: "180px"
           }}
         >
           {/* Gender */}
@@ -177,14 +175,16 @@ const Statistics = () => {
                   outerRadius: 60,
                   paddingAngle: 3,
                   cornerRadius: 4,
-                  arcLabel: (item) => `${item.label}: ${item.value}`, // ✅ label + value
                 }
               ]}
               colors={["#060745", "#9e9e9e"]}
               height={130}
-              slotProps={{ legend: { hidden: true } }}
+              hideLegend
+              slotProps={{
+                legend: { hidden: true } // ✅ removed legend
+              }}
             />
-            <Typography textAlign="center">
+            <Typography textAlign="center" fontWeight={600}>
               Gender Distribution
             </Typography>
           </Grid>
@@ -199,14 +199,16 @@ const Statistics = () => {
                   outerRadius: 60,
                   paddingAngle: 3,
                   cornerRadius: 4,
-                  arcLabel: (item) => `${item.label}: ${item.value}`, // ✅ label + value
                 }
               ]}
               colors={["#060745", "#9e9e9e"]}
               height={130}
-              slotProps={{ legend: { hidden: true } }}
+              hideLegend
+              slotProps={{
+                legend: { hidden: true } // ✅ removed legend
+              }}
             />
-            <Typography textAlign="center">
+            <Typography textAlign="center" fontSize={12} fontWeight={600}>
               PWD / Senior Distribution
             </Typography>
           </Grid>

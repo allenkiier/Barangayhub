@@ -1532,52 +1532,30 @@ app.get("/api/statistics/residentials", (req, res) => {
 app.get('/api/statistics/transactions', (req, res) => {
   const query = `
     SELECT 
-      t.trans_name,
-      COUNT(r.req_id) AS count
-    FROM transactions t
-    LEFT JOIN request r ON t.trans_id = r.trans_id
-    GROUP BY t.trans_id
-    ORDER BY t.trans_id ASC
+      SUM(CASE WHEN trans_id = 1 THEN 1 ELSE 0 END) AS indigency,
+      SUM(CASE WHEN trans_id = 2 THEN 1 ELSE 0 END) AS brgyId,
+      SUM(CASE WHEN trans_id = 3 THEN 1 ELSE 0 END) AS clearance,
+      SUM(CASE WHEN trans_id = 4 THEN 1 ELSE 0 END) AS business,
+      SUM(CASE WHEN trans_id = 5 THEN 1 ELSE 0 END) AS incident
+    FROM request
   `;
 
-  db.all(query, [], (err, rows) => {
+  db.get(query, [], (err, row) => {
     if (err) {
       console.error("Transaction stats error:", err.message);
       return res.status(500).json({ error: err.message });
     }
 
-    // Convert into clean object format
-    const result = {
-      indigency: 0,
-      brgyId: 0,
-      clearance: 0,
-      business: 0,
-      incident: 0
-    };
-
-    rows.forEach(row => {
-      switch (row.trans_name) {
-        case "Indigency":
-          result.indigency = row.count;
-          break;
-        case "Barangay ID":
-          result.brgyId = row.count;
-          break;
-        case "Barangay Clearance":
-          result.clearance = row.count;
-          break;
-        case "Business Clearance":
-          result.business = row.count;
-          break;
-        case "Incident Report":
-          result.incident = row.count;
-          break;
-      }
+    res.json({
+      indigency: row.indigency || 0,
+      brgyId: row.brgyId || 0,
+      clearance: row.clearance || 0,
+      business: row.business || 0,
+      incident: row.incident || 0,
     });
-
-    res.json(result);
   });
 });
+
 // ===================== START SERVER =====================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -54,7 +54,7 @@ const Residentials = () => {
         }}
       >
         <Typography variant="h6" sx={{fontWeight: 600}}>
-          Number of Residents Over Time
+          Resident Counts Over Time
         </Typography>
 
         <SparkLineChart

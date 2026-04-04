@@ -3,7 +3,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Button, Grid, FormControl,
   InputLabel, Select, MenuItem,
-  Snackbar, Alert
+  Snackbar, Alert, Typography
 } from "@mui/material";
 import axios from "axios";
 
@@ -18,12 +18,15 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
   const [appType, setAppType] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success"
   });
 
+  // ================= SUBMIT =================
   const handleSubmit = async () => {
     if (!userid) {
       setSnackbar({
@@ -52,17 +55,14 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:3001/api/incident-report/submit",
-        {
-          userid,
-          incident_date: formData.incident_date,
-          incident_time: formData.incident_time,
-          incident_address: formData.incident_address,
-          narrative: formData.narrative,
-          app_type: appType
-        }
-      );
+      await axios.post("http://localhost:3001/api/incident-report/submit", {
+        userid,
+        incident_date: formData.incident_date,
+        incident_time: formData.incident_time,
+        incident_address: formData.incident_address,
+        narrative: formData.narrative,
+        app_type: appType
+      });
 
       setSnackbar({
         open: true,
@@ -72,7 +72,7 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
 
       onClose();
 
-      // reset
+      // reset form
       setFormData({
         incident_date: "",
         incident_time: "",
@@ -95,6 +95,35 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
     }
   };
 
+  // ================= CONFIRM HANDLERS =================
+  const handleOpenConfirm = () => {
+    // Optional: validate before opening confirm
+    if (!formData.incident_date ||
+        !formData.incident_time ||
+        !formData.incident_address ||
+        !formData.narrative ||
+        !appType) {
+      setSnackbar({
+        open: true,
+        message: "Please complete all fields before confirming",
+        severity: "warning"
+      });
+      return;
+    }
+
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setConfirmOpen(false);
+    handleSubmit();
+  };
+
+  const handleCancelConfirm = () => {
+    setConfirmOpen(false);
+  };
+
+  // ================= UI =================
   return (
     <>
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -174,9 +203,10 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
           <Button onClick={onClose} sx={{ color: "#060745" }}>
             Cancel
           </Button>
+
           <Button
             variant="contained"
-            onClick={handleSubmit}
+            onClick={handleOpenConfirm}
             sx={{ background: "#060745" }}
             disabled={loading}
           >
@@ -185,7 +215,39 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
+      {/* CONFIRMATION DIALOG */}
+      <Dialog open={confirmOpen} onClose={handleCancelConfirm}>
+        <DialogTitle>Confirm Submission</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to submit this Incident Report?
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Application Type: <strong>{appType || "Not selected"}</strong>
+          </Typography>
+
+          <Typography variant="body2">
+            Date: <strong>{formData.incident_date || "N/A"}</strong>
+          </Typography>
+
+          <Typography variant="body2">
+            Time: <strong>{formData.incident_time || "N/A"}</strong>
+          </Typography>
+
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleCancelConfirm} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmSubmit} variant="contained" sx={{ background: "#060745" }}>
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* SNACKBAR */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from "react";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Grid, Box, CircularProgress, MenuItem,
-  Snackbar, Alert
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Grid,
+  Box,
+  CircularProgress,
+  MenuItem,
+  Snackbar,
+  Alert,
+  Typography
 } from "@mui/material";
 
 const BrgyClearanceRequest = ({ open, onClose }) => {
@@ -11,6 +21,8 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
 
   const [userid, setUserid] = useState(null);
   const [purpose, setPurpose] = useState("");
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -24,12 +36,23 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
     province: ""
   });
 
-  // ✅ Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success"
   });
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
 
   // ================= GET USER =================
   useEffect(() => {
@@ -38,11 +61,7 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
       const uid = storedUser?.userid;
 
       if (!uid) {
-        setSnackbar({
-          open: true,
-          message: "User not logged in",
-          severity: "error"
-        });
+        showSnackbar("User not logged in", "error");
         return;
       }
 
@@ -50,8 +69,8 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
       setLoading(true);
 
       fetch(`http://localhost:3001/api/user/${uid}`)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           setFormData({
             name: data.user_name,
             sex: data.sex,
@@ -65,13 +84,9 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
           });
           setLoading(false);
         })
-        .catch(err => {
+        .catch((err) => {
           console.error(err);
-          setSnackbar({
-            open: true,
-            message: "Failed to fetch user data",
-            severity: "error"
-          });
+          showSnackbar("Failed to fetch user data", "error");
           setLoading(false);
         });
     }
@@ -80,20 +95,12 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
   // ================= SUBMIT =================
   const handleSubmit = async () => {
     if (!userid) {
-      setSnackbar({
-        open: true,
-        message: "Missing user ID",
-        severity: "error"
-      });
+      showSnackbar("Missing user ID", "error");
       return;
     }
 
     if (!purpose) {
-      setSnackbar({
-        open: true,
-        message: "Please select a purpose",
-        severity: "warning"
-      });
+      showSnackbar("Please select a purpose", "warning");
       return;
     }
 
@@ -113,26 +120,37 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        throw new Error(data.error || "Submission failed");
+      }
 
-      setSnackbar({
-        open: true,
-        message: "Request submitted successfully!",
-        severity: "success"
-      });
+      showSnackbar("Request submitted successfully!", "success");
 
       onClose();
-
     } catch (err) {
       console.error(err);
-      setSnackbar({
-        open: true,
-        message: err.message,
-        severity: "error"
-      });
+      showSnackbar(err.message, "error");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // ================= CONFIRM HANDLERS =================
+  const handleOpenConfirm = () => {
+    if (!purpose) {
+      showSnackbar("Please select a purpose", "warning");
+      return;
+    }
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setConfirmOpen(false);
+    handleSubmit();
+  };
+
+  const handleCancelConfirm = () => {
+    setConfirmOpen(false);
   };
 
   // ================= UI =================
@@ -148,7 +166,6 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
             </Box>
           ) : (
             <Grid container spacing={2} sx={{ display: "flex", flexDirection: "column", marginTop: 2 }}>
-
               <Grid item xs={12}>
                 <TextField
                   select
@@ -163,12 +180,11 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
                 </TextField>
               </Grid>
 
-              {/* READ ONLY USER INFO */}
               <Grid item xs={12} sm={6}>
                 <TextField fullWidth label="Name" value={formData.name} InputProps={{ readOnly: true }} />
               </Grid>
 
-              <Grid item xs={12} sm={6} sx={{ display: "flex", flexDirection: "row", justifyContent: "start", gap: 3 }}>
+              <Grid item xs={12} sm={6} sx={{ display: "flex", gap: 3 }}>
                 <TextField sx={{ width: "30%" }} label="Sex" value={formData.sex} InputProps={{ readOnly: true }} />
                 <TextField sx={{ width: "30%" }} label="Birthdate" value={formData.birthdate} InputProps={{ readOnly: true }} />
                 <TextField sx={{ width: "30%" }} label="Birthplace" value={formData.birthplace} InputProps={{ readOnly: true }} />
@@ -182,7 +198,6 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
                   InputProps={{ readOnly: true }}
                 />
               </Grid>
-
             </Grid>
           )}
         </DialogContent>
@@ -191,8 +206,9 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
           <Button onClick={onClose} sx={{ color: "#060745" }}>
             Cancel
           </Button>
+
           <Button
-            onClick={handleSubmit}
+            onClick={handleOpenConfirm}
             variant="contained"
             sx={{ background: "#060745" }}
             disabled={loading || submitting}
@@ -202,16 +218,47 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
         </DialogActions>
       </Dialog>
 
-      {/* ✅ SNACKBAR */}
+      {/* CONFIRMATION DIALOG */}
+      <Dialog open={confirmOpen} onClose={handleCancelConfirm}>
+        <DialogTitle>Confirm Submission</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to submit this Barangay Clearance request?
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Purpose: <strong>{purpose || "Not selected"}</strong>
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleCancelConfirm} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmSubmit}
+            variant="contained"
+            sx={{ background: "#060745" }}
+            disabled={submitting}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* SNACKBAR */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>

@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from "react";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Grid, Box, CircularProgress,
-  Typography, MenuItem, Snackbar, Alert
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Grid,
+  Box,
+  CircularProgress,
+  Typography,
+  MenuItem,
+  Snackbar,
+  Alert
 } from "@mui/material";
 
 const BrgyIDRequest = ({ open, onClose, serviceName }) => {
@@ -10,14 +20,27 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
   const [submitting, setSubmitting] = useState(false);
 
   const [appType, setAppType] = useState("New");
-
   const [userid, setUserid] = useState(null);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success"
   });
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
 
   const [formData, setFormData] = useState({
     name: "",
@@ -43,11 +66,7 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
       const uid = storedUser?.userid;
 
       if (!uid) {
-        setSnackbar({
-          open: true,
-          message: "User not logged in",
-          severity: "error"
-        });
+        showSnackbar("User not logged in", "error");
         return;
       }
 
@@ -55,9 +74,9 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
       setLoading(true);
 
       fetch(`http://localhost:3001/api/user/${uid}`)
-        .then(res => res.json())
-        .then(data => {
-          setFormData(prev => ({
+        .then((res) => res.json())
+        .then((data) => {
+          setFormData((prev) => ({
             ...prev,
             name: data.user_name,
             sex: data.sex,
@@ -71,14 +90,10 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
           }));
           setLoading(false);
         })
-        .catch(err => {
+        .catch((err) => {
           console.error(err);
           setLoading(false);
-          setSnackbar({
-            open: true,
-            message: "Failed to load user data",
-            severity: "error"
-          });
+          showSnackbar("Failed to load user data", "error");
         });
     }
   }, [open]);
@@ -86,18 +101,18 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
   // ================= INPUT =================
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // ================= SUBMIT =================
   const handleSubmit = async () => {
     if (!userid) {
-      setSnackbar({ open: true, message: "Missing user ID", severity: "error" });
+      showSnackbar("Missing user ID", "error");
       return;
     }
 
     if (!appType) {
-      setSnackbar({ open: true, message: "Please select application type", severity: "warning" });
+      showSnackbar("Please select application type", "warning");
       return;
     }
 
@@ -119,30 +134,43 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
 
-      setSnackbar({
-        open: true,
-        message: `Submitted! Transaction ID: ${data.transaction_id}`,
-        severity: "success"
-      });
+      if (!res.ok) {
+        throw new Error(data.error || "Submission failed");
+      }
+
+      showSnackbar(
+        `Submitted successfully! Transaction ID: ${data.transaction_id}`,
+        "success"
+      );
 
       onClose();
-
     } catch (err) {
       console.error(err);
-      setSnackbar({
-        open: true,
-        message: err.message,
-        severity: "error"
-      });
+      showSnackbar(err.message, "error");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // ================= CONFIRM HANDLERS =================
+  const handleOpenConfirm = () => {
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setConfirmOpen(false);
+    handleSubmit();
+  };
+
+  const handleCancelConfirm = () => {
+    setConfirmOpen(false);
+  };
+
+  // ================= UI =================
   return (
     <>
+      {/* MAIN DIALOG */}
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
         <DialogTitle>{serviceName || "Barangay ID Request"}</DialogTitle>
 
@@ -153,7 +181,6 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
             </Box>
           ) : (
             <Grid container spacing={2} sx={{ display: "flex", flexDirection: "column", marginTop: 2 }}>
-
               <Grid item xs={12}>
                 <TextField
                   select
@@ -192,15 +219,17 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
                 <TextField name="contact_person" label="Contact Person" value={formData.contact_person} onChange={handleChange} />
                 <TextField name="contact_person_no" label="Contact No." value={formData.contact_person_no} onChange={handleChange} />
               </Grid>
-
             </Grid>
           )}
         </DialogContent>
 
         <DialogActions sx={{ marginBottom: 2, marginRight: 3 }}>
-          <Button onClick={onClose} sx={{ color: "#060745" }}>Cancel</Button>
+          <Button onClick={onClose} sx={{ color: "#060745" }}>
+            Cancel
+          </Button>
+
           <Button
-            onClick={handleSubmit}
+            onClick={handleOpenConfirm}
             variant="contained"
             sx={{ background: "#060745" }}
             disabled={loading || submitting}
@@ -210,16 +239,47 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
+      {/* CONFIRMATION DIALOG */}
+      <Dialog open={confirmOpen} onClose={handleCancelConfirm}>
+        <DialogTitle>Confirm Submission</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to submit this Barangay ID request?
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Application Type: <strong>{appType}</strong>
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleCancelConfirm} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmSubmit}
+            variant="contained"
+            sx={{ background: "#060745" }}
+            disabled={submitting}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* SNACKBAR (success + error alerts) */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>

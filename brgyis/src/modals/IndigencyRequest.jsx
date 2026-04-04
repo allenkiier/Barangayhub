@@ -10,6 +10,8 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const [appType, setAppType] = useState('indigency');
 
   const [snackbar, setSnackbar] = useState({
@@ -17,6 +19,18 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
     message: "",
     severity: "success"
   });
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -30,7 +44,6 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
     province: ''
   });
 
-  // ✅ ALWAYS GET REAL USER ID
   const resolvedUserId = userId || localStorage.getItem("userid");
 
   // ================= AUTO FILL =================
@@ -46,11 +59,7 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
       })
       .catch(err => {
         console.error("Fetch error:", err);
-        setSnackbar({
-          open: true,
-          message: "Failed to load user data",
-          severity: "error"
-        });
+        showSnackbar("Failed to load user data", "error");
       })
       .finally(() => {
         setLoading(false);
@@ -60,21 +69,15 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
 
   // ================= SUBMIT =================
   const handleSubmit = async () => {
+    setConfirmOpen(false);
+
     if (!resolvedUserId) {
-      setSnackbar({
-        open: true,
-        message: "User not detected. Please login again.",
-        severity: "error"
-      });
+      showSnackbar("User not detected. Please login again.", "error");
       return;
     }
 
     if (!appType) {
-      setSnackbar({
-        open: true,
-        message: "Please select application type",
-        severity: "warning"
-      });
+      showSnackbar("Please select application type", "warning");
       return;
     }
 
@@ -92,23 +95,20 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        throw new Error(data.error || "Submission failed");
+      }
 
-      setSnackbar({
-        open: true,
-        message: `Submitted! Transaction ID: ${data.transaction_id}`,
-        severity: "success"
-      });
+      showSnackbar(
+        `Submitted successfully! Transaction ID: ${data.transaction_id}`,
+        "success"
+      );
 
       onClose();
 
     } catch (err) {
       console.error(err);
-      setSnackbar({
-        open: true,
-        message: err.message,
-        severity: "error"
-      });
+      showSnackbar(err.message, "error");
     } finally {
       setSubmitting(false);
     }
@@ -129,7 +129,6 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
             <Grid container spacing={2} py={3}>
               <Grid sx={{ display: "flex", flexDirection: "column" }}>
 
-                {/* APPLICATION TYPE */}
                 <Grid item xs={12} marginBottom={3}>
                   <TextField
                     select
@@ -145,15 +144,10 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
                 </Grid>
 
                 <Grid item xs={12} marginBottom={3}>
-                  <TextField
-                    fullWidth
-                    label="Full Name"
-                    value={formData.name || ''}
-                    InputProps={{ readOnly: true }}
-                  />
+                  <TextField fullWidth label="Full Name" value={formData.name || ''} InputProps={{ readOnly: true }} />
                 </Grid>
 
-                <Grid item xs={4} sx={{ display: "flex", flexDirection: 'row' }} gap={2}>
+                <Grid item xs={4} sx={{ display: "flex", gap: 2 }}>
                   <TextField sx={{ width: "100px" }} label="Age" value={formData.age || ''} InputProps={{ readOnly: true }} />
                   <TextField label="Sex" value={formData.sex || ''} InputProps={{ readOnly: true }} />
                   <TextField label="Civil Status" value={formData.civilStatus || ''} InputProps={{ readOnly: true }} />
@@ -163,13 +157,13 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
                   <Typography variant="subtitle2">Address</Typography>
                 </Grid>
 
-                <Grid item xs={12} sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                <Grid item xs={12} sx={{ display: "flex", gap: 2 }}>
                   <TextField sx={{ width: "100px" }} label="House No." value={formData.house_no || ''} InputProps={{ readOnly: true }} />
                   <TextField sx={{ width: "200px" }} label="Street" value={formData.street || ''} InputProps={{ readOnly: true }} />
                   <TextField sx={{ width: "200px" }} label="Barangay" value={formData.barangay || ''} InputProps={{ readOnly: true }} />
                 </Grid>
 
-                <Grid item xs={12} sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 2 }}>
+                <Grid item xs={12} sx={{ display: "flex", gap: 2, mt: 2 }}>
                   <TextField sx={{ width: "200px" }} label="Municipality" value={formData.municipality || ''} InputProps={{ readOnly: true }} />
                   <TextField sx={{ width: "200px" }} label="Province" value={formData.province || ''} InputProps={{ readOnly: true }} />
                 </Grid>
@@ -179,10 +173,11 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ marginBottom: 2, marginRight: 3 }}>
+        <DialogActions sx={{ mb: 2, mr: 3 }}>
           <Button onClick={onClose} sx={{ color: "#060745" }}>Cancel</Button>
+
           <Button
-            onClick={handleSubmit}
+            onClick={() => setConfirmOpen(true)}
             sx={{ background: "#060745" }}
             variant="contained"
             disabled={loading || submitting}
@@ -192,16 +187,37 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
+      {/* ✅ CONFIRMATION DIALOG */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>Confirm Submission</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to submit this request?
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Application Type: <strong>{appType}</strong>
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained" sx={{ background: "#060745" }}>
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ✅ SNACKBAR (SUCCESS + ERROR ALERTS) */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>

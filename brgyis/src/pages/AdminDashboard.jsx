@@ -76,15 +76,15 @@ const AdminDashboard = () => {
 
           {/* ================= Dashboard Area ================= */}
           <Grid sx={{ display: 'flex', flexDirection: 'row', justifyContent: 'start', alignItems: 'center', height: "70vh"}}>
-            <Box sx={{width: "80%", mr: 4, height: "100%"}}>
+            <Box sx={{width: "85%", mr: 4, height: "100%"}}>
                 <Box sx={{ display: 'flex', flexDirection: 'row',  justifyContent: 'start', mb: 4}}>
                   <Box sx={{ display: "flex", flexDirection: "column", alignItems: "start", width: "30%"}}>
                     <Statistics />
                   </Box>
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", width: "30%", gap: 2, marginRight: 4}}>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", width: "35%", gap: 2, marginRight: 4}}>
                     <Residentials />
                   </Box>
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: "37%", border: "1px solid #ddd", borderRadius: "8px", p: 1    }}>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: "40%", border: "1px solid #ddd", borderRadius: "8px", px: 3, py: 1, background: "white" }}>
                     <Box
                       sx={{
                         width: "100%",
