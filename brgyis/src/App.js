@@ -12,6 +12,7 @@ import AdminTransaction from './pages/AdminTransaction';
 import Admission from './pages/Admission';
 import UserRequest from './pages/UserRequest';
 import UserRecords from './pages/UserRecords';
+import PasswordManager from './pages/PasswordManager';
 
 // --- The Protected Route Wrapper ---
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -53,6 +54,7 @@ function App() {
           <Route path="/transaction-history" element={<ProtectedRoute adminOnly={true}><AdminTransaction /></ProtectedRoute>} />
           <Route path="/adminAdmit" element={<ProtectedRoute adminOnly={true}><Admission /></ProtectedRoute>} />
           <Route path="/userRecords" element={<ProtectedRoute adminOnly={true}><UserRecords /></ProtectedRoute>} />
+          <Route path="/passManager" element={<ProtectedRoute adminOnly={true}><PasswordManager /></ProtectedRoute>} />
 
           {/* Catch-all: Redirect unknown URLs to login */}
           <Route path="*" element={<Navigate to="/" replace />} />

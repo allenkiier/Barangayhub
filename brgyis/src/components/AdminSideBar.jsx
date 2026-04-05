@@ -16,6 +16,7 @@ import Groups2Icon from '@mui/icons-material/Groups2';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'; 
 import AttributionIcon from '@mui/icons-material/Attribution';
+import LockResetIcon from '@mui/icons-material/LockReset';
 
 const AdminSideBar = () => {
   const navigate = useNavigate();
@@ -63,6 +64,11 @@ const AdminSideBar = () => {
                 <Link to="/userRecords" className="side-item">
                     <AttributionIcon/>
                     <span>User Records</span>
+                </Link>
+
+                <Link to="/passManager" className="side-item">
+                    <LockResetIcon/>
+                    <span>Password Manager</span>
                 </Link>
             </div>
 

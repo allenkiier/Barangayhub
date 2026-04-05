@@ -8,8 +8,9 @@ const AdminTransaction = () => {
   
   return (
     <div>
+      <AdminSideBar />
       <Box display="flex">
-        <AdminSideBar />
+        
         <Box sx={{ flex: 1, ml: "90px", mt: "20px", paddingRight: 2 }}>
           <div id="header">
             <Box>

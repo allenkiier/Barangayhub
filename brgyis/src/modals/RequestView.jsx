@@ -27,14 +27,15 @@ import BarangayClearance from "../certificates/BarangayClearance";
 import BusinessClearance from "../certificates/BusinessClearance";
 import IncidentReport from "../certificates/IncidentReport";
 
-const RequestView = ({ open, onClose, request }) => {
+// ✅ Added onUpdate to props
+const RequestView = ({ open, onClose, request, onUpdate }) => {
   const [status, setStatus] = useState("pending");
   const [loading, setLoading] = useState(false);
   const [officials, setOfficials] = useState([]);
 
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  // ✅ Snackbar state
+  // Snackbar state
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -122,6 +123,9 @@ const RequestView = ({ open, onClose, request }) => {
         severity: "success",
       });
 
+      // ✅ Trigger refresh in the background list
+      if (onUpdate) onUpdate();
+
     } catch (err) {
       setSnackbar({
         open: true,
@@ -171,7 +175,10 @@ const RequestView = ({ open, onClose, request }) => {
 
       setConfirmDeleteOpen(false);
 
-      // small delay so user sees snackbar before close
+      // ✅ Trigger refresh so the item disappears from the background list
+      if (onUpdate) onUpdate();
+
+      // Small delay so user sees snackbar before modal closes
       setTimeout(() => {
         onClose();
       }, 800);
@@ -214,7 +221,7 @@ const RequestView = ({ open, onClose, request }) => {
 
         <DialogContent dividers>
           <Grid container spacing={3}>
-            {/* LEFT */}
+            {/* LEFT - Preview */}
             <Grid item xs={12} md={8}>
               <Box sx={{ border: "1px solid #ccc", p: 1, minHeight: "500px" }}>
                 {request && TemplateComponent ? (
@@ -225,7 +232,7 @@ const RequestView = ({ open, onClose, request }) => {
               </Box>
             </Grid>
 
-            {/* RIGHT */}
+            {/* RIGHT - Actions */}
             <Grid item xs={12} md={4}>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <Button
@@ -285,13 +292,11 @@ const RequestView = ({ open, onClose, request }) => {
       {/* CONFIRM DELETE DIALOG */}
       <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
-
         <DialogContent>
           <Typography>
             Are you sure you want to delete this request?
           </Typography>
         </DialogContent>
-
         <DialogActions>
           <Button onClick={() => setConfirmDeleteOpen(false)}>
             Cancel
@@ -302,7 +307,7 @@ const RequestView = ({ open, onClose, request }) => {
         </DialogActions>
       </Dialog>
 
-      {/* ✅ SNACKBAR */}
+      {/* SNACKBAR */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

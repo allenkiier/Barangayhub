@@ -1,6 +1,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
+const crypto = require("crypto");
 const cors = require('cors');
 const path = require('path');
 const jwt = require("jsonwebtoken");
@@ -69,6 +70,19 @@ db.serialize(() => {
       is_active INTEGER DEFAULT 1,
       FOREIGN KEY (userid) REFERENCES user(userid)
     )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userid INTEGER NOT NULL,
+      email TEXT NOT NULL, 
+      token TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME,
+      FOREIGN KEY (userid) REFERENCES user(userid)
+    );
   `);
   db.run(`
       CREATE TABLE IF NOT EXISTS indig_req (
@@ -222,6 +236,18 @@ db.serialize(() => {
     `);
   });
 
+
+  db.run(`
+  CREATE TABLE IF NOT EXISTS password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userid INTEGER,
+    token TEXT UNIQUE,
+    status TEXT DEFAULT 'pending',
+    expires_at TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userid) REFERENCES user(userid)
+  )
+`);
 // ===================== HELPERS =====================
 const calculateAge = (birthdate) => {
   if (!birthdate) return '';
@@ -1556,7 +1582,250 @@ app.get('/api/statistics/transactions', (req, res) => {
   });
 });
 
+app.post("/api/auth/check-reset-status", (req, res) => {
+  const { email } = req.body;
+
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  const sql = `
+    SELECT token, status 
+    FROM password_resets 
+    WHERE email = ? 
+    ORDER BY created_at DESC 
+    LIMIT 1
+  `;
+
+  db.get(sql, [email], (err, row) => {
+    if (err) {
+      console.error("DEBUG: Check Status DB Error:", err.message);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: "No reset request found for this email" });
+    }
+    res.json(row); 
+  });
+});
+
+app.post("/api/auth/reset-password", (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  db.get(
+    `SELECT * FROM password_resets 
+     WHERE token = ? AND status = 'pending'`,
+    [token],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      if (!row) {
+        return res.status(400).json({ error: "Invalid token" });
+      }
+
+      if (new Date(row.expires_at) < new Date()) {
+        return res.status(400).json({ error: "Token expired" });
+      }
+
+      db.run(
+        "UPDATE user SET password = ? WHERE userid = ?",
+        [newPassword, row.userid],
+        function (err) {
+          if (err) return res.status(500).json({ error: err.message });
+
+          db.run(
+            "UPDATE password_resets SET status = 'used' WHERE token = ?",
+            [token]
+          );
+
+          res.json({ message: "Password updated successfully" });
+        }
+      );
+    }
+  );
+});
+
+app.post("/api/auth/approve-reset", (req, res) => {
+  const { token } = req.body;
+
+  db.run(
+    `UPDATE password_resets SET status = 'approved' WHERE token = ?`,
+    [token],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+
+      res.json({ message: "Reset approved" });
+    }
+  );
+});
+
+app.get("/api/admin/reset-requests", authenticateToken, (req, res) => {
+  db.all(
+    "SELECT * FROM password_resets",
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      console.log("ROWS:", rows);
+      res.json(rows);
+    }
+  );
+});
+
+app.post("/api/admin/reset-approve/:token", authenticateToken, (req, res) => {
+  const { token } = req.params;
+
+  db.run(
+    "UPDATE password_resets SET status = 'approved' WHERE token = ?",
+    [token],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "Token not found" });
+      }
+
+      res.json({ message: "Request approved" });
+    }
+  );
+});
+
+app.get("/api/auth/check-reset-status/:token", (req, res) => {
+  const { token } = req.params;
+
+  db.get(
+    "SELECT status FROM password_resets WHERE token = ?",
+    [token],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      if (!row) {
+        return res.status(404).json({ status: "invalid" });
+      }
+
+      res.json({ status: row.status }); // pending | approved | used
+    }
+  );
+});
+
+app.post("/api/auth/reset-password/:token", (req, res) => {
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  // 1. Find the userid associated with this approved token
+  const findUserSql = `SELECT userid FROM password_resets WHERE token = ? AND status = 'approved'`;
+
+  db.get(findUserSql, [token], (err, row) => {
+    if (err || !row) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    const userId = row.userid;
+
+    // 2. Update the passwordhash column in the user table
+    // WE UPDATED 'password' TO 'passwordhash' HERE:
+    const updateSql = `UPDATE user SET passwordhash = ? WHERE userid = ?`;
+
+    db.run(updateSql, [newPassword, userId], function(updateErr) {
+      if (updateErr) {
+        console.error("SQL UPDATE ERROR:", updateErr.message);
+        return res.status(500).json({ error: "Failed to update database" });
+      }
+
+      // 3. Mark the token as 'used' so it can't be reused
+      db.run(`UPDATE password_resets SET status = 'used' WHERE token = ?`, [token]);
+
+      res.json({ message: "Password updated successfully!" });
+    });
+  });
+});
+
+app.post("/api/auth/forgot-password", (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  // 1. Check if user exists
+  db.get("SELECT userid FROM user WHERE email_ad = ?", [email], (err, user) => {
+    if (err) return res.status(500).json({ error: "Database lookup error" });
+    if (!user) return res.status(404).json({ error: "No account found with that email" });
+
+    // 2. Prepare data
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 3600000).toISOString(); // 1 hour
+
+    // 3. THE INSERT - Explicitly naming the 4 columns we are providing
+    // 'id', 'status', and 'created_at' will fill themselves automatically!
+    const sql = `
+      INSERT INTO password_resets (userid, email, token, expires_at) 
+      VALUES (?, ?, ?, ?)
+    `;
+    
+    db.run(sql, [user.userid, email, token, expires], function(insertErr) {
+      if (insertErr) {
+        // CRITICAL: This log in your VS Code terminal will tell us the exact SQLite error
+        console.error("SQL INSERT ERROR:", insertErr.message); 
+        return res.status(500).json({ error: "Failed to save reset request: " + insertErr.message });
+      }
+      
+      console.log(`Success! Request saved for: ${email}`);
+      res.json({ message: "Reset request sent to admin.", token });
+    });
+  });
+});
+
+app.post("/api/auth/reset-password", (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: "Token and new password required" });
+  }
+
+  db.get(
+    `SELECT * FROM password_resets WHERE token = ?`,
+    [token],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      if (!row) {
+        return res.status(400).json({ error: "Invalid token" });
+      }
+
+      if (row.status !== "pending") {
+        return res.status(400).json({ error: "Token already used" });
+      }
+
+      if (new Date(row.expires_at) < new Date()) {
+        return res.status(400).json({ error: "Token expired" });
+      }
+
+      bcrypt.hash(newPassword, 10, (hashErr, hashedPassword) => {
+        if (hashErr) {
+          return res.status(500).json({ error: "Hashing failed" });
+        }
+
+        db.run(
+          `UPDATE user SET passwordHash = ? WHERE userid = ?`,
+          [hashedPassword, row.userid],
+          function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+
+            db.run(
+              `UPDATE password_resets SET status = 'used' WHERE token = ?`,
+              [token]
+            );
+
+            res.json({ message: "Password reset successful" });
+          }
+        );
+      });
+    }
+  );
+});
 // ===================== START SERVER =====================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
