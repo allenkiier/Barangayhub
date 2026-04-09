@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import {
   Container,
   Box,
@@ -70,7 +70,7 @@ const Council = () => {
 
   const handleConfirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:3001/api/council/delete/${selectedDeleteId}`);
+      await api.delete(`/api/council/delete/${selectedDeleteId}`);
       showSnack("Deleted successfully");
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
@@ -85,8 +85,8 @@ const Council = () => {
   const fetchAllData = async () => {
     try {
       const [adminRes, councilRes] = await Promise.all([
-        axios.get("http://localhost:3001/api/users/admins"),
-        axios.get("http://localhost:3001/api/council/all")
+        api.get("/api/users/admins"),
+        api.get("/api/council/all")
       ]);
 
       setAdmins(adminRes.data || []);
@@ -128,7 +128,7 @@ const Council = () => {
   // ✅ Add Member
   const handleSubmit = async () => {
     try {
-      await axios.post("http://localhost:3001/api/council/add", {
+      await api.post("/api/council/add", {
         ...formData,
         is_active: formData.is_active ? 1 : 0,
       });
@@ -149,8 +149,8 @@ const Council = () => {
     try {
       const newStatus = currentStatus === 1 ? 0 : 1;
 
-      await axios.put(
-        `http://localhost:3001/api/council/update-status/${id}`,
+      await api.put(
+        `/api/council/update-status/${id}`,
         { is_active: newStatus }
       );
 

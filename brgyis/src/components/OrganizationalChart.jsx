@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import {
   Box,
   Typography,
@@ -48,7 +48,7 @@ const OrganizationalChart = () => {
 
   const fetchCouncil = async () => {
     try {
-      const res = await axios.get("http://localhost:3001/api/council/list");
+      const res = await api.get("/api/council/list");
       setChartData(res.data);
     } catch (err) {
       console.error("Error fetching council chart:", err);

@@ -9,7 +9,7 @@ import {
   CircularProgress,
   Typography
 } from "@mui/material";
-import axios from "axios";
+import api from "../api";
 
 export default function ResetPass({ open, onClose, token, showAlert }) {
   const [password, setPassword] = useState("");
@@ -30,8 +30,8 @@ export default function ResetPass({ open, onClose, token, showAlert }) {
     setLoading(true);
     try {
       // NOTE: Ensure your backend route is: /api/auth/reset-password/:token
-      const res = await axios.post(
-        `http://localhost:3001/api/auth/reset-password/${token}`,
+      const res = await api.post(
+        `/api/auth/reset-password/${token}`,
         { newPassword: password }
       );
 

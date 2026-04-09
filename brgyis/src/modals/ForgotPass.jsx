@@ -9,7 +9,7 @@ import {
   Typography,
   CircularProgress
 } from "@mui/material";
-import axios from "axios";
+import api from "../api";
 
 export default function ForgotPass({ open, onClose, showAlert, onVerified }) {
   const [email, setEmail] = useState("");
@@ -24,8 +24,8 @@ export default function ForgotPass({ open, onClose, showAlert, onVerified }) {
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:3001/api/auth/forgot-password",
+      const res = await api.post(
+        "/api/auth/forgot-password",
         { email }
       );
       showAlert(res.data.message, "success");
@@ -50,8 +50,8 @@ export default function ForgotPass({ open, onClose, showAlert, onVerified }) {
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:3001/api/auth/check-reset-status",
+      const res = await api.post(
+        "/api/auth/check-reset-status",
         { email }
       );
 

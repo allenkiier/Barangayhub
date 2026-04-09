@@ -7,7 +7,7 @@ const path = require('path');
 const jwt = require("jsonwebtoken");
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.JWT_SECRET || "fallback_secret";
 
 app.use(cors());
@@ -1846,7 +1846,7 @@ app.post("/api/auth/reset-password", (req, res) => {
   );
 });
 // ===================== START SERVER =====================
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend running on port ${PORT}`);
 });
 

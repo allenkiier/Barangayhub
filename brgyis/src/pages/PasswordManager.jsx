@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import {
   Box,
   Paper,
@@ -24,7 +24,7 @@ const PasswordManager = () => {
   const fetchRequests = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:3001/api/admin/reset-requests", {
+      const res = await api.get("/api/admin/reset-requests", {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -46,8 +46,8 @@ const PasswordManager = () => {
     setProcessingToken(tokenValue);
     try {
       const token = localStorage.getItem("token");
-      await axios.post(
-        `http://localhost:3001/api/admin/reset-approve/${tokenValue}`,
+      await api.post(
+        `/api/admin/reset-approve/${tokenValue}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

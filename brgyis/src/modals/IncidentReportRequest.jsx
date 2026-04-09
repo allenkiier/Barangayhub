@@ -5,7 +5,7 @@ import {
   InputLabel, Select, MenuItem,
   Snackbar, Alert, Typography
 } from "@mui/material";
-import axios from "axios";
+import api from "../api";
 
 const IncidentReportRequest = ({ open, onClose, userid }) => {
   const [formData, setFormData] = useState({
@@ -55,7 +55,7 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
     setLoading(true);
 
     try {
-      await axios.post("http://localhost:3001/api/incident-report/submit", {
+      await api.post("/api/incident-report/submit", {
         userid,
         incident_date: formData.incident_date,
         incident_time: formData.incident_time,
