@@ -1663,6 +1663,8 @@ app.post("/api/auth/approve-reset", (req, res) => {
 });
 
 app.get("/api/admin/reset-requests", authenticateToken, (req, res) => {
+  // In your Admin fetch route
+  const sql = "SELECT * FROM password_resets WHERE status != 'used' ORDER BY created_at DESC";
   db.all(
     "SELECT * FROM password_resets",
     [],
@@ -1673,6 +1675,7 @@ app.get("/api/admin/reset-requests", authenticateToken, (req, res) => {
       res.json(rows);
     }
   );
+  
 });
 
 app.post("/api/admin/reset-approve/:token", authenticateToken, (req, res) => {
@@ -1711,35 +1714,45 @@ app.get("/api/auth/check-reset-status/:token", (req, res) => {
   );
 });
 
-app.post("/api/auth/reset-password/:token", (req, res) => {
+app.post("/api/auth/reset-password/:token", async (req, res) => {
   const { token } = req.params;
   const { newPassword } = req.body;
 
   // 1. Find the userid associated with this approved token
   const findUserSql = `SELECT userid FROM password_resets WHERE token = ? AND status = 'approved'`;
 
-  db.get(findUserSql, [token], (err, row) => {
+  db.get(findUserSql, [token], async (err, row) => {
     if (err || !row) {
       return res.status(400).json({ error: "Invalid or expired token" });
     }
 
     const userId = row.userid;
 
-    // 2. Update the passwordhash column in the user table
-    // WE UPDATED 'password' TO 'passwordhash' HERE:
-    const updateSql = `UPDATE user SET passwordhash = ? WHERE userid = ?`;
+    try {
+      // ✅ UPDATE: Hash the new password before saving
+      // This ensures it matches the format your Login logic expects
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    db.run(updateSql, [newPassword, userId], function(updateErr) {
-      if (updateErr) {
-        console.error("SQL UPDATE ERROR:", updateErr.message);
-        return res.status(500).json({ error: "Failed to update database" });
-      }
+      // 2. Update the passwordhash column with the HASHED version
+      const updateSql = `UPDATE user SET passwordhash = ? WHERE userid = ?`;
 
-      // 3. Mark the token as 'used' so it can't be reused
-      db.run(`UPDATE password_resets SET status = 'used' WHERE token = ?`, [token]);
+      db.run(updateSql, [hashedPassword, userId], function(updateErr) {
+        if (updateErr) {
+          console.error("SQL UPDATE ERROR:", updateErr.message);
+          return res.status(500).json({ error: "Failed to update database" });
+        }
 
-      res.json({ message: "Password updated successfully!" });
-    });
+        // 3. Mark the token as 'used' or DELETE it so it can't be reused
+        // Using DELETE is often cleaner for "finishing touches"
+        db.run(`DELETE FROM password_resets WHERE token = ?`, [token]);
+
+        res.json({ message: "Password updated successfully!" });
+      });
+    } catch (hashError) {
+      console.error("Hashing error:", hashError);
+      res.status(500).json({ error: "Error processing password" });
+    }
   });
 });
 
@@ -1747,7 +1760,7 @@ app.post("/api/auth/forgot-password", (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
 
-  // 1. Check if user exists
+  // 1. Check if user exists (using your email_ad column)
   db.get("SELECT userid FROM user WHERE email_ad = ?", [email], (err, user) => {
     if (err) return res.status(500).json({ error: "Database lookup error" });
     if (!user) return res.status(404).json({ error: "No account found with that email" });
@@ -1756,21 +1769,29 @@ app.post("/api/auth/forgot-password", (req, res) => {
     const token = crypto.randomBytes(32).toString("hex");
     const expires = new Date(Date.now() + 3600000).toISOString(); // 1 hour
 
-    // 3. THE INSERT - Explicitly naming the 4 columns we are providing
-    // 'id', 'status', and 'created_at' will fill themselves automatically!
+    // ✅ THE ROOT FIX: Generate local timestamp in 'YYYY-MM-DD HH:MM:SS' format
+    // This overrides the database's default UTC behavior
+    const now = new Date();
+    const localTimestamp = now.getFullYear() + '-' +
+      String(now.getMonth() + 1).padStart(2, '0') + '-' +
+      String(now.getDate()).padStart(2, '0') + ' ' +
+      String(now.getHours()).padStart(2, '0') + ':' +
+      String(now.getMinutes()).padStart(2, '0') + ':' +
+      String(now.getSeconds()).padStart(2, '0');
+
+    // 3. THE INSERT - Now explicitly providing created_at
     const sql = `
-      INSERT INTO password_resets (userid, email, token, expires_at) 
-      VALUES (?, ?, ?, ?)
+      INSERT INTO password_resets (userid, email, token, expires_at, created_at) 
+      VALUES (?, ?, ?, ?, ?)
     `;
     
-    db.run(sql, [user.userid, email, token, expires], function(insertErr) {
+    db.run(sql, [user.userid, email, token, expires, localTimestamp], function(insertErr) {
       if (insertErr) {
-        // CRITICAL: This log in your VS Code terminal will tell us the exact SQLite error
         console.error("SQL INSERT ERROR:", insertErr.message); 
         return res.status(500).json({ error: "Failed to save reset request: " + insertErr.message });
       }
       
-      console.log(`Success! Request saved for: ${email}`);
+      console.log(`Success! Request saved at ${localTimestamp} for: ${email}`);
       res.json({ message: "Reset request sent to admin.", token });
     });
   });

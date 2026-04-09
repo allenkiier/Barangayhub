@@ -111,8 +111,8 @@ const BarangayClearance = ({ request, officials }) => {
         </Box>
 
         {/* DATA GRID */}
-        <Grid container sx={{ borderBottom: '1px solid black' }}>
-          <Grid item xs={7} sx={{ p: 2, borderRight: '1px solid black' }}>
+        <Grid container sx={{}}>
+          <Grid item xs={7} sx={{ p: 2}}>
             {[
               { label: 'Name', value: clearanceData.user_name },
               { label: 'Address', value: `${clearanceData.address}` },
@@ -136,11 +136,11 @@ const BarangayClearance = ({ request, officials }) => {
         </Grid>
 
         {/* PURPOSE SECTION */}
-        <Box sx={{ bgcolor: '#d1d5db', px: 1, py: 0.2 }}>
+        <Box sx={{ bgcolor: '#d1d5db', px: 1, py: 0.2, height: 20}}>
           <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Purpose:</Typography>
         </Box>
-        <Box sx={{ py: 2, textAlign: 'center' }}>
-          <Typography variant="body1" sx={{ fontWeight: 'bold', textDecoration: 'underline' }}>{clearanceData.purpose || 'FOR ANY LEGAL PURPOSES'}</Typography>
+        <Box sx={{ py: 2, px: 0, textAlign: 'center', height: 20 }}>
+          <Typography sx={{ fontWeight: 'bold', textDecoration: 'underline' }}>{clearanceData.purpose || 'FOR ANY LEGAL PURPOSES'}</Typography>
         </Box>
 
         {/* SIGNATURE SECTION */}
@@ -169,7 +169,7 @@ const BarangayClearance = ({ request, officials }) => {
         </Box>
 
         {/* FEES TABLE */}
-        <Box sx={{ mt: 2, width: '250px' }}>
+        <Box sx={{ mt: 1, width: '250px' }}>
           <Box sx={{ bgcolor: '#d1d5db', px: 1, display: 'flex', justifyContent: 'space-between', border: '1px solid black' }}>
             <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Amount Paid:</Typography>
             <Typography variant="caption" sx={{ fontWeight: 'bold' }}>₱ 50.00</Typography>
@@ -180,33 +180,35 @@ const BarangayClearance = ({ request, officials }) => {
         </Box>
 
         {/* ISSUANCE INFO */}
-        <Grid container sx={{ mt: 1, border: '1px solid black', bgcolor: '#d1d5db' }}>
-          <Grid item xs={4} sx={{ p: 0.5, borderRight: '1px solid black' }}>
-            <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>Time Issued:</Typography>
-            <Typography sx={{ fontSize: '12px' }}>{clearanceData.time_issued || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Typography>
+        <Box sx={{display: "flex", flexDirection: "row", justifyContent: "space-between"}}>
+          <Grid container sx={{ border: '1px solid black', bgcolor: '#d1d5db', width: 250, height: 50 }}>
+            <Grid item xs={4} sx={{ p: 0.5, borderRight: '1px solid black' }}>
+              <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>Time Issued:</Typography>
+              <Typography sx={{ fontSize: '12px' }}>{clearanceData.time_issued || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Typography>
+            </Grid>
+            <Grid item xs={4} sx={{ p: 0.5, borderRight: '1px solid black'}}>
+              <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>Date Issued:</Typography>
+              <Typography sx={{ fontSize: '12px' }}>{new Date().toLocaleDateString()}</Typography>
+            </Grid>
+            <Grid item xs={4} sx={{ p: 0.5, width: 100 }}>
+              <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>Date Expired:</Typography>
+              <Typography sx={{ fontSize: '12px' }}>12/31/2026</Typography>
+            </Grid>
           </Grid>
-          <Grid item xs={4} sx={{ p: 0.5, borderRight: '1px solid black' }}>
-            <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>Date Issued:</Typography>
-            <Typography sx={{ fontSize: '12px' }}>{new Date().toLocaleDateString()}</Typography>
-          </Grid>
-          <Grid item xs={4} sx={{ p: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', fontWeight: 'bold' }}>Date Expired:</Typography>
-            <Typography sx={{ fontSize: '12px' }}>12/31/2026</Typography>
-          </Grid>
-        </Grid>
 
         {/* SIGNATORY */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'end', mt: 5, pr: 5, mb: 2}}>
-          <Box sx={{textAlign: 'center'}}>
-            <Typography sx={{ fontWeight: 900, fontSize: '18px'}}>{punongBarangay}</Typography>
-            <Typography sx={{ fontSize: '14px'}}>Punong Barangay</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'end', mt: 2, pr: 5, mb: 2}}>
+            <Box sx={{textAlign: 'center'}}>
+              <Typography sx={{ fontWeight: 900, fontSize: '18px'}}>{punongBarangay}</Typography>
+              <Typography sx={{ fontSize: '14px'}}>Punong Barangay</Typography>
+            </Box>
           </Box>
         </Box>
 
         <p className="text-justify" style={{ textIndent: '30px', marginBottom: '2px', fontSize: '11px', color: '#555' }}>
               This certification is issued upon the request of the above-mentioned name for whatever legal purpose it may serve.
         </p>
-        <footer style={{ width: '100%', marginTop: 'auto', paddingBottom: '10px' }}>
+        <footer style={{ width: '100%', marginTop: 0.2, paddingBottom: '10px' }}>
           <hr style={{ height: '2px', backgroundColor: 'black', border: 'none', marginBottom: 5 }} />
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444" }}>
             <div style={{ textAlign: "left" }}>

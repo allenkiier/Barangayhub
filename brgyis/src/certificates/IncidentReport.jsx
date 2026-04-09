@@ -80,7 +80,7 @@ const IncidentReport = ({ request, officials }) => {
       </Box>
 
       {/* Main Content Box */}
-      <Box sx={{ border: '2px solid black' }}>
+      <Box sx={{ border: '2px solid black', height: 350}}>
         {/* Title Bar */}
         <Box 
           sx={{ 
@@ -90,7 +90,7 @@ const IncidentReport = ({ request, officials }) => {
             backgroundColor: '#f5f5f5'
           }}
         >
-          <Typography sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
+          <Typography sx={{ fontWeight: 'bold', letterSpacing: 1}}>
             BLOTTER / INCIDENT REPORT
           </Typography>
         </Box>
@@ -116,7 +116,7 @@ const IncidentReport = ({ request, officials }) => {
         </Grid>
 
         {/* Narrative Section */}
-        <Box sx={{ p: 2, minHeight: '350px' }}>
+        <Box sx={{ p: 2, minHeight: '300px' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
             NARRATIVE OF INCIDENT / COMPLAINT:
           </Typography>
@@ -126,10 +126,10 @@ const IncidentReport = ({ request, officials }) => {
         </Box>
       </Box>
 
-      <Box sx={{ border: '1px solid black', mt: 4 }}>
+      <Box sx={{ border: '1px solid black', mt: 2, height: 100 }}>
         <Grid container wrap="nowrap"> 
           {/* Box 1: Reportee */}
-          <Grid item xs={4} sx={{ p: 1, borderRight: '1px solid black', minHeight: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: "33.33%" }}>
+          <Grid item xs={4} sx={{ p: 1, borderRight: '1px solid black', minHeight: '100px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: "33.33%" }}>
             <Typography sx={{ fontSize: '10px', fontStyle: 'italic', lineHeight: 1.1 }}>
               Details stated above are true and correct to the best of my knowledge and belief.
             </Typography>
@@ -166,12 +166,12 @@ const IncidentReport = ({ request, officials }) => {
       </Box>
 
       {/* Final Footer Line */}
-      <Box sx={{ mt: 'auto', pt: 4, textAlign: 'center' }}>
+      <Box sx={{ mt: 1, pt: 2, textAlign: 'center' }}>
         <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'gray' }}>
           This is an official document generated via the Barangay E-Services System.
         </Typography>
       </Box>
-      <footer style={{ width: '100%', marginTop: 'auto', paddingBottom: '10px' }}>
+      <footer style={{ width: '100%', marginTop: 0.2, paddingBottom: '10px' }}>
             <hr style={{ height: '2px', backgroundColor: 'black', border: 'none', marginBottom: 5 }} />
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444" }}>
                   <div style={{ textAlign: "left" }}>
