@@ -74,7 +74,7 @@ const CertificateOfIndigency = ({ request, officials}) => {
         </Box>
 
         {/* BODY */}
-        <Box sx={{ flexGrow: 1, fontSize: '18px', lineHeight: 1.8 }}>
+        <Box sx={{ flexGrow: 1, fontSize: '18px', lineHeight: 1.8, marginBottom: -10}}>
             <p style={{ marginBottom: '25px' }}>To Whom It May Concern:</p>
             
             <p className="text-justify" style={{ textIndent: '50px', marginBottom: '20px' }}>
@@ -94,7 +94,7 @@ const CertificateOfIndigency = ({ request, officials}) => {
             </p>
 
             {/* SIGNATURE AREA */}
-            <div style={{ marginTop: '80px', display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ marginTop: '10px', display: "flex", justifyContent: "flex-end" }}>
                 <div style={{ textAlign: "center", width: "200px" }}>
                   <p style={{ fontWeight: 900, borderBottom: '1px solid black', textTransform: 'uppercase' }}>
                     {punongBarangay}
@@ -108,7 +108,7 @@ const CertificateOfIndigency = ({ request, officials}) => {
           This is an official document generated via the Barangay E-Services System.
         </Typography>
         <footer style={{ width: '100%' }}>
-          <hr style={{ height: '2px', backgroundColor: '#060745', border: 'none', marginBottom: 10 }} />
+          <hr style={{ height: '2px', backgroundColor: '#060745', border: 'none'}} />
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#444" }}>
             <div style={{ textAlign: "left" }}>
               <p style={{ fontWeight: 'bold' }}>Joyao-Joyao Multi Purpose-Hall</p>
