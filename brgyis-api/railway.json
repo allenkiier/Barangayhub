@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "node brgyis-api/server.js",
+    "startCommand": "node server.js",
     "restartPolicyType": "ON_FAILURE",
     "rootDirectory": "brgyis-api"
   }
