@@ -52,7 +52,7 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
 
     setLoading(true);
 
-    fetch(`http://localhost:3001/api/user/${resolvedUserId}/form-indigency`)
+    fetch(`http://localhost:5000/api/user/${resolvedUserId}/form-indigency`)
       .then(res => res.json())
       .then(data => {
         setFormData(data);
@@ -84,7 +84,7 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
     setSubmitting(true);
 
     try {
-      const res = await fetch('http://localhost:3001/api/indigency/submit', {
+      const res = await fetch('http://localhost:5000/api/indigency/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

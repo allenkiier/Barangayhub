@@ -21,7 +21,7 @@ const BusinessClearance = ({ request, officials }) => {
 
     setLoading(true);
 
-    fetch(`http://localhost:3001/api/business-clearance/${transactionId}`)
+    fetch(`http://localhost:5000/api/business-clearance/${transactionId}`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();

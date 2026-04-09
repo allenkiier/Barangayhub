@@ -53,7 +53,7 @@ const Statistics = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/statistics");
+        const res = await fetch("http://localhost:5000/api/statistics");
         const data = await res.json();
         setStats(data);
       } catch (err) {

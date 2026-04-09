@@ -58,8 +58,8 @@ const WalkIns = () => {
     try {
       const endpoint =
         type === "complaint"
-          ? "http://localhost:3001/api/complaints"
-          : "http://localhost:3001/api/suggestions";
+          ? "http://localhost:5000/api/complaints"
+          : "http://localhost:5000/api/suggestions";
 
       const res = await fetch(endpoint, {
         method: "POST",

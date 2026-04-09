@@ -55,7 +55,7 @@ const Complaints = ({ open, onClose }) => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3001/api/complaints", {
+      const res = await fetch("http://localhost:5000/api/complaints", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

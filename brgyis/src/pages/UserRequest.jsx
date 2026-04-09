@@ -37,7 +37,7 @@ const UserRequest = () => {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/requests/user/${userid}`);
+        const res = await fetch(`http://localhost:5000/api/requests/user/${userid}`);
         const data = await res.json();
 
         if (res.ok) {

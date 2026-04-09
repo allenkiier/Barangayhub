@@ -60,7 +60,7 @@ const RequestView = ({ open, onClose, request, onUpdate }) => {
         setStatus(request.status);
       }
 
-      fetch("http://localhost:3001/api/council/active-officials")
+      fetch("http://localhost:5000/api/council/active-officials")
         .then((res) => res.json())
         .then((data) => setOfficials(data))
         .catch((err) => console.error(err));
@@ -104,7 +104,7 @@ const RequestView = ({ open, onClose, request, onUpdate }) => {
 
     try {
       const res = await fetch(
-        `http://localhost:3001/api/requests/${request.req_id}/status`,
+        `http://localhost:5000/api/requests/${request.req_id}/status`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -148,7 +148,7 @@ const RequestView = ({ open, onClose, request, onUpdate }) => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://localhost:3001/api/requests/${request.req_id}`,
+        `http://localhost:5000/api/requests/${request.req_id}`,
         {
           method: "DELETE",
           headers: {

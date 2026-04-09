@@ -11,7 +11,7 @@ const BarangayIDApplication = ({ request}) => {
     setLoading(true);
     
     // UPDATED URL: matches your server.js app.get('/api/brgyid/:transaction_id')
-    fetch(`http://localhost:3001/api/brgyid/${transactionId}`)
+    fetch(`http://localhost:5000/api/brgyid/${transactionId}`)
       .then((res) => res.json())
       .then((data) => {
         console.log("FORM DATA:", data);

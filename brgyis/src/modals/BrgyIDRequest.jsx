@@ -73,7 +73,7 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
       setUserid(uid);
       setLoading(true);
 
-      fetch(`http://localhost:3001/api/user/${uid}`)
+      fetch(`http://localhost:5000/api/user/${uid}`)
         .then((res) => res.json())
         .then((data) => {
           setFormData((prev) => ({
@@ -119,7 +119,7 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
     setSubmitting(true);
 
     try {
-      const res = await fetch("http://localhost:3001/api/brgyid/submit", {
+      const res = await fetch("http://localhost:5000/api/brgyid/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

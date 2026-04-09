@@ -55,7 +55,7 @@ const Suggestion = ({ open, onClose }) => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3001/api/suggestions", {
+      const res = await fetch("http://localhost:5000/api/suggestions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

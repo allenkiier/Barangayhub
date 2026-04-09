@@ -55,7 +55,7 @@ const Profiling = () => {
 
     if (!userid) return;
 
-    fetch(`http://localhost:3001/api/user/${userid}`)
+    fetch(`http://localhost:5000/api/user/${userid}`)
       .then((res) => res.json())
       .then((data) => {
         setFormData((prev) => ({
@@ -83,7 +83,7 @@ const Profiling = () => {
     e.preventDefault();
     try {
       const res = await fetch(
-        `http://localhost:3001/api/user/${formData.userid}/profile`,
+        `http://localhost:5000/api/user/${formData.userid}/profile`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

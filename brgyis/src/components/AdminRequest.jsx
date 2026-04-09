@@ -31,7 +31,7 @@ const AdminRequest = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://localhost:3001/api/admin/requests", {
+      const res = await fetch("http://localhost:5000/api/admin/requests", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -68,7 +68,7 @@ const AdminRequest = () => {
           ? `/api/admin/approve/${selectedId}`
           : `/api/admin/reject/${selectedId}`;
 
-      const res = await fetch(`http://localhost:3001${endpoint}`, {
+      const res = await fetch(`http://localhost:5000${endpoint}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

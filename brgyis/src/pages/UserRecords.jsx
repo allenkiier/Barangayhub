@@ -63,7 +63,7 @@ const UserRecords = () => {
   // ✅ FETCH USERS
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/users');
+      const res = await fetch('http://localhost:5000/api/users');
       const data = await res.json();
       setUsers(data);
     } catch (err) {
@@ -110,7 +110,7 @@ const UserRecords = () => {
   const handleUpdate = async () => {
     try {
       const res = await fetch(
-        `http://localhost:3001/api/users/${selectedUser.id}`,
+        `http://localhost:5000/api/users/${selectedUser.id}`,
         {
           method: 'PUT',
           headers: {
@@ -141,7 +141,7 @@ const UserRecords = () => {
   const handleConfirmDelete = async () => {
     try {
       const res = await fetch(
-        `http://localhost:3001/api/users/${userToDelete.id}`,
+        `http://localhost:5000/api/users/${userToDelete.id}`,
         {
           method: 'DELETE'
         }
