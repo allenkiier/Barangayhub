@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "../api";
 import {
   Container,
@@ -50,9 +50,10 @@ const Council = () => {
     severity: "success"
   });
 
-  const showSnack = (message, severity = "success") => {
+  // ✅ STABILIZED: showSnack
+  const showSnack = useCallback((message, severity = "success") => {
     setSnack({ open: true, message, severity });
-  };
+  }, []);
 
   const handleCloseSnack = () => {
     setSnack((prev) => ({ ...prev, open: false }));
@@ -79,16 +80,14 @@ const Council = () => {
     }
   };
 
-  // ✅ FIXED: stable fetch function
-  const fetchAllData = async () => {
+  // ✅ STABILIZED: fetchAllData using useCallback to pass the build linter
+  const fetchAllData = useCallback(async () => {
     try {
       setLoading(true);
-
       const [adminRes, councilRes] = await Promise.all([
         api.get("/api/users/admins"),
         api.get("/api/council/all")
       ]);
-
       setAdmins(adminRes.data || []);
       setCouncilMembers(councilRes.data || []);
     } catch (err) {
@@ -97,12 +96,12 @@ const Council = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showSnack]); // showSnack is now a stable dependency
 
-  // ✅ FIXED: no infinite loop
+  // ✅ FIXED: dependency array now includes fetchAllData and refreshTrigger
   useEffect(() => {
     fetchAllData();
-  }, [refreshTrigger]);
+  }, [fetchAllData, refreshTrigger]);
 
   const handleUserChange = (e) => {
     const userId = Number(e.target.value);
@@ -133,10 +132,8 @@ const Council = () => {
       });
 
       showSnack("Council member added successfully");
-
       setFormData({ userid: "", name: "", role: "", is_active: true });
       setSelectedUser("");
-
       setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       showSnack(err.response?.data?.error || "Error adding member", "error");
@@ -146,11 +143,9 @@ const Council = () => {
   const toggleStatus = async (id, currentStatus) => {
     try {
       const newStatus = currentStatus === 1 ? 0 : 1;
-
       await api.put(`/api/council/update-status/${id}`, {
         is_active: newStatus,
       });
-
       showSnack("Status updated");
       setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
@@ -168,147 +163,157 @@ const Council = () => {
   }
 
   return (
-    <Box sx={{ display: "flex", pl: 20 }}>
+    <Box sx={{ display: "flex" }}>
       <AdminSideBar />
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, ml: "90px" }}>
         <OrganizationalChart key={refreshTrigger} />
 
-        <Container fullWidth>
-          <Grid container spacing={4} sx={{ flexDirection: "column" }}>
-
-            {/* FORM */}
+        <Container maxWidth="lg" sx={{ mt: 4 }}>
+          <Grid container spacing={4}>
+            {/* FORM SECTION */}
             <Grid item xs={12}>
-              <Typography variant="h5" sx={{ fontWeight: "bold", color: "#060745" }}>
-                Council Admission
-              </Typography>
+              <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 3 }}>
+                <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold", color: "#060745" }}>
+                  Council Admission
+                </Typography>
 
-              <Grid container spacing={2} direction="column">
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={8}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="Select Admin User"
+                      value={selectedUser}
+                      onChange={handleUserChange}
+                    >
+                      {admins.map((user) => (
+                        <MenuItem key={user.userid} value={user.userid}>
+                          {user.user_name} ({user.email_ad})
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
 
-                <TextField
-                  select
-                  label="Select Admin User"
-                  value={selectedUser}
-                  onChange={handleUserChange}
-                  sx={{ width: "70%" }}
-                >
-                  {admins.map((user) => (
-                    <MenuItem key={user.userid} value={user.userid}>
-                      {user.user_name} ({user.email_ad})
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  <Grid item xs={4} md={2}>
+                    <TextField fullWidth label="User ID" value={formData.userid} InputProps={{ readOnly: true }} />
+                  </Grid>
 
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <TextField sx={{ width: "10%" }} label="User ID" value={formData.userid} InputProps={{ readOnly: true }} />
-                  <TextField sx={{ width: "20%" }} label="Name" value={formData.name} InputProps={{ readOnly: true }} />
+                  <Grid item xs={8} md={2}>
+                    <TextField fullWidth label="Name" value={formData.name} InputProps={{ readOnly: true }} />
+                  </Grid>
 
-                  <TextField
-                    select
-                    sx={{ width: "40%" }}
-                    label="Role"
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                  >
-                    <MenuItem value="Punong Barangay">Punong Barangay</MenuItem>
-                    <MenuItem value="SB Member">SB Member</MenuItem>
-                    <MenuItem value="SK Chairman">SK Chairman</MenuItem>
-                    <MenuItem value="Barangay Secretary">Barangay Secretary</MenuItem>
-                    <MenuItem value="Barangay Treasurer">Barangay Treasurer</MenuItem>
-                    <MenuItem value="Barangay Clerk">Barangay Clerk</MenuItem>
-                  </TextField>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="Role"
+                      name="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                    >
+                      <MenuItem value="Punong Barangay">Punong Barangay</MenuItem>
+                      <MenuItem value="SB Member">SB Member</MenuItem>
+                      <MenuItem value="SK Chairman">SK Chairman</MenuItem>
+                      <MenuItem value="Barangay Secretary">Barangay Secretary</MenuItem>
+                      <MenuItem value="Barangay Treasurer">Barangay Treasurer</MenuItem>
+                      <MenuItem value="Barangay Clerk">Barangay Clerk</MenuItem>
+                    </TextField>
+                  </Grid>
 
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formData.is_active}
-                        onChange={handleChange}
-                        name="is_active"
-                      />
-                    }
-                    label="Active"
-                  />
-                </Box>
+                  <Grid item xs={12} md={2} sx={{ display: "flex", alignItems: "center" }}>
+                    <FormControlLabel
+                      control={<Checkbox checked={formData.is_active} onChange={handleChange} name="is_active" />}
+                      label="Active"
+                    />
+                  </Grid>
 
-                <Button
-                  variant="contained"
-                  sx={{ backgroundColor: "#060745" }}
-                  onClick={handleSubmit}
-                  disabled={!formData.userid || !formData.role}
-                >
-                  Add to Council
-                </Button>
-              </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Button
+                      fullWidth
+                      size="large"
+                      variant="contained"
+                      sx={{ backgroundColor: "#060745", height: "100%" }}
+                      onClick={handleSubmit}
+                      disabled={!formData.userid || !formData.role}
+                    >
+                      Add to Council
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
             </Grid>
 
-            {/* TABLE */}
+            {/* TABLE SECTION */}
             <Grid item xs={12}>
-              <Typography variant="h5" sx={{ fontWeight: "bold", color: "#060745" }}>
-                Council Member List
-              </Typography>
+              <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 3 }}>
+                <Typography variant="h5" sx={{ mb: 2, fontWeight: "bold", color: "#060745" }}>
+                  Council Member List
+                </Typography>
 
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Role</TableCell>
-                      <TableCell align="center">Status</TableCell>
-                      <TableCell align="right">Action</TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  <TableBody>
-                    {councilMembers.map((m) => (
-                      <TableRow key={m.council_id}>
-                        <TableCell>{m.name}</TableCell>
-                        <TableCell>{m.role}</TableCell>
-
-                        <TableCell align="center">
-                          <Chip
-                            label={m.is_active ? "Active" : "Inactive"}
-                            color={m.is_active ? "success" : "default"}
-                          />
-                        </TableCell>
-
-                        <TableCell align="right">
-                          <Button onClick={() => toggleStatus(m.council_id, m.is_active)}>
-                            {m.is_active ? "Deactivate" : "Activate"}
-                          </Button>
-
-                          <Button color="error" onClick={() => handleDeleteClick(m.council_id)}>
-                            Delete
-                          </Button>
-                        </TableCell>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><b>Name</b></TableCell>
+                        <TableCell><b>Role</b></TableCell>
+                        <TableCell align="center"><b>Status</b></TableCell>
+                        <TableCell align="right"><b>Action</b></TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                    </TableHead>
+                    <TableBody>
+                      {councilMembers.map((m) => (
+                        <TableRow key={m.council_id}>
+                          <TableCell>{m.name}</TableCell>
+                          <TableCell>{m.role}</TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={m.is_active ? "Active" : "Inactive"}
+                              color={m.is_active ? "success" : "default"}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Button size="small" onClick={() => toggleStatus(m.council_id, m.is_active)}>
+                              {m.is_active ? "Deactivate" : "Activate"}
+                            </Button>
+                            <Button size="small" color="error" onClick={() => handleDeleteClick(m.council_id)}>
+                              Delete
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
             </Grid>
-
           </Grid>
         </Container>
       </Box>
 
-      {/* DIALOG */}
+      {/* DELETE DIALOG */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure?</Typography>
+          <Typography>Are you sure you want to remove this member from the council?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button color="error" onClick={handleConfirmDelete}>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
             Delete
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* SNACKBAR */}
-      <Snackbar open={snack.open} autoHideDuration={3000} onClose={handleCloseSnack}>
-        <Alert severity={snack.severity} onClose={handleCloseSnack}>
+      <Snackbar 
+        open={snack.open} 
+        autoHideDuration={3000} 
+        onClose={handleCloseSnack}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={snack.severity} onClose={handleCloseSnack} variant="filled">
           {snack.message}
         </Alert>
       </Snackbar>
