@@ -1341,10 +1341,17 @@ app.get('/api/users', (req, res) => {
 app.delete('/api/users/:id', (req, res) => {
   const { id } = req.params;
 
-  db.run(
-    `DELETE FROM user WHERE userid = ?`,
-    [id],
-    function (err) {
+  db.serialize(() => {
+    db.run("DELETE FROM council WHERE userid = ?", [id]);
+    db.run("DELETE FROM request WHERE userid = ?", [id]);
+    db.run("DELETE FROM indig_req WHERE userid = ?", [id]);
+    db.run("DELETE FROM brgyid_req WHERE userid = ?", [id]);
+    db.run("DELETE FROM brgy_clearance_req WHERE userid = ?", [id]);
+    db.run("DELETE FROM business_clearance_req WHERE userid = ?", [id]);
+    db.run("DELETE FROM incident_reports WHERE userid = ?", [id]);
+    db.run("DELETE FROM password_resets WHERE userid = ?", [id]);
+
+    db.run("DELETE FROM user WHERE userid = ?", [id], function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
@@ -1354,8 +1361,8 @@ app.delete('/api/users/:id', (req, res) => {
       }
 
       res.json({ message: "User deleted successfully" });
-    }
-  );
+    });
+  });
 });
 
 app.put('/api/users/:id', (req, res) => {
