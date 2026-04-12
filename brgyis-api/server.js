@@ -1341,15 +1341,34 @@ app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) =
   };
 
   try {
+    // 1. Delete associated data from ALL tables to satisfy Foreign Key constraints
+    // This must happen BEFORE deleting the user
+    await runQuery("DELETE FROM council WHERE userid = ?", [id]);
+    await runQuery("DELETE FROM password_resets WHERE userid = ?", [id]);
+    
+    // Cleanup specific request data
+    await runQuery("DELETE FROM indig_req WHERE userid = ?", [id]);
+    await runQuery("DELETE FROM brgyid_req WHERE userid = ?", [id]);
+    await runQuery("DELETE FROM brgy_clearance_req WHERE userid = ?", [id]);
+    await runQuery("DELETE FROM business_clearance_req WHERE userid = ?", [id]);
+    await runQuery("DELETE FROM incident_reports WHERE userid = ?", [id]);
+    
+    // Cleanup the main request log
+    await runQuery("DELETE FROM request WHERE userid = ?", [id]);
+
+    // 2. Now that the children are gone, we can delete the parent (user)
     const result = await runQuery("DELETE FROM user WHERE userid = ?", [id]);
+
     if (result.changes === 0) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.json({ message: "Deleted successfully" });
+
+    res.json({ message: "User and all associated records deleted successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Delete failure:", err.message);
+    res.status(500).json({ error: "Database error: " + err.message });
   }
-}); 
+});
 
 app.put('/api/users/:id', (req, res) => {
   const { id } = req.params;
