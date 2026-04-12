@@ -1328,25 +1328,29 @@ app.get('/api/users', (req, res) => {
   );
 });
 
+// ===================== COMPLETE USER DELETE ENDPOINT =====================
 app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
+  // Helper to wrap db.run in a Promise for async/await usage
   const runQuery = (sql, params) => {
     return new Promise((resolve, reject) => {
       db.run(sql, params, function (err) {
         if (err) reject(err);
         else resolve(this);
       });
-    }); 
+    });
   };
 
   try {
-    // 1. Delete associated data from ALL tables to satisfy Foreign Key constraints
-    // This must happen BEFORE deleting the user
-    await runQuery("DELETE FROM council WHERE userid = ?", [id]);
+    // 1. DELETE DEPENDENCIES FIRST
+    // We must clear these because they reference userid as a Foreign Key
+    console.log(`Starting cleanup for User ID: ${id}`);
+
     await runQuery("DELETE FROM password_resets WHERE userid = ?", [id]);
+    await runQuery("DELETE FROM council WHERE userid = ?", [id]);
     
-    // Cleanup specific request data
+    // Cleanup specific application tables linked to the user
     await runQuery("DELETE FROM indig_req WHERE userid = ?", [id]);
     await runQuery("DELETE FROM brgyid_req WHERE userid = ?", [id]);
     await runQuery("DELETE FROM brgy_clearance_req WHERE userid = ?", [id]);
@@ -1356,16 +1360,28 @@ app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) =
     // Cleanup the main request log
     await runQuery("DELETE FROM request WHERE userid = ?", [id]);
 
-    // 2. Now that the children are gone, we can delete the parent (user)
+    // 2. FINALLY DELETE THE USER
+    // After dependencies are gone, this will no longer throw a constraint error
     const result = await runQuery("DELETE FROM user WHERE userid = ?", [id]);
 
     if (result.changes === 0) {
-      return res.status(404).json({ error: "User not found" });
+      console.log(`Delete failed: No user found with ID ${id}`);
+      return res.status(404).json({ error: "User not found in database." });
     }
 
+    console.log(`Successfully deleted user ${id} and all related records.`);
     res.json({ message: "User and all associated records deleted successfully" });
+
   } catch (err) {
-    console.error("Delete failure:", err.message);
+    console.error("CRITICAL DELETE ERROR:", err.message);
+    
+    // If it still fails, it's likely a table we missed
+    if (err.message.includes("FOREIGN KEY constraint failed")) {
+      return res.status(500).json({ 
+        error: "Cannot delete user: They are still linked to other records not covered in the cleanup." 
+      });
+    }
+    
     res.status(500).json({ error: "Database error: " + err.message });
   }
 });
