@@ -44,7 +44,6 @@ const Council = () => {
     is_active: true,
   });
 
-  // ✅ Snackbar
   const [snack, setSnack] = useState({
     open: false,
     message: "",
@@ -56,10 +55,9 @@ const Council = () => {
   };
 
   const handleCloseSnack = () => {
-    setSnack({ ...snack, open: false });
+    setSnack((prev) => ({ ...prev, open: false }));
   };
 
-  // ✅ Confirm Delete Dialog
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState(null);
 
@@ -72,7 +70,7 @@ const Council = () => {
     try {
       await api.delete(`/api/council/delete/${selectedDeleteId}`);
       showSnack("Deleted successfully");
-      setRefreshTrigger(prev => prev + 1);
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       showSnack(err.response?.data?.error || "Delete failed", "error");
     } finally {
@@ -81,9 +79,11 @@ const Council = () => {
     }
   };
 
-  // ✅ Fetch Data
+  // ✅ FIXED: stable fetch function
   const fetchAllData = async () => {
     try {
+      setLoading(true);
+
       const [adminRes, councilRes] = await Promise.all([
         api.get("/api/users/admins"),
         api.get("/api/council/all")
@@ -93,16 +93,17 @@ const Council = () => {
       setCouncilMembers(councilRes.data || []);
     } catch (err) {
       showSnack("Failed to load data", "error");
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ FIXED: no infinite loop
   useEffect(() => {
     fetchAllData();
-  }, );
+  }, [refreshTrigger]);
 
-  // ✅ Select User
   const handleUserChange = (e) => {
     const userId = Number(e.target.value);
     const user = admins.find((u) => Number(u.userid) === userId);
@@ -116,7 +117,6 @@ const Council = () => {
     }));
   };
 
-  // ✅ Input Change
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -125,7 +125,6 @@ const Council = () => {
     }));
   };
 
-  // ✅ Add Member
   const handleSubmit = async () => {
     try {
       await api.post("/api/council/add", {
@@ -137,35 +136,31 @@ const Council = () => {
 
       setFormData({ userid: "", name: "", role: "", is_active: true });
       setSelectedUser("");
-      setRefreshTrigger(prev => prev + 1);
 
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       showSnack(err.response?.data?.error || "Error adding member", "error");
     }
   };
 
-  // ✅ Toggle Status
   const toggleStatus = async (id, currentStatus) => {
     try {
       const newStatus = currentStatus === 1 ? 0 : 1;
 
-      await api.put(
-        `/api/council/update-status/${id}`,
-        { is_active: newStatus }
-      );
+      await api.put(`/api/council/update-status/${id}`, {
+        is_active: newStatus,
+      });
 
       showSnack("Status updated");
-      setRefreshTrigger(prev => prev + 1);
-
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       showSnack("Failed to update status", "error");
     }
   };
 
-  // ✅ Loading UI
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
         <CircularProgress />
         <Typography sx={{ ml: 2 }}>Loading Council Management...</Typography>
       </Box>
@@ -173,18 +168,18 @@ const Council = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', pl: 20 }}>
+    <Box sx={{ display: "flex", pl: 20 }}>
       <AdminSideBar />
 
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <OrganizationalChart key={refreshTrigger} />
 
         <Container fullWidth>
-          <Grid container spacing={4} sx={{ display: "flex", flexDirection: "column" }}>
+          <Grid container spacing={4} sx={{ flexDirection: "column" }}>
 
             {/* FORM */}
             <Grid item xs={12}>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: "#060745" }}>
+              <Typography variant="h5" sx={{ fontWeight: "bold", color: "#060745" }}>
                 Council Admission
               </Typography>
 
@@ -205,12 +200,12 @@ const Council = () => {
                 </TextField>
 
                 <Box sx={{ display: "flex", gap: 2 }}>
-                  <TextField sx={{width: "10%"}} label="User ID" value={formData.userid} InputProps={{ readOnly: true }} />
-                  <TextField sx={{width: "20%"}} label="Name" value={formData.name} InputProps={{ readOnly: true }} />
+                  <TextField sx={{ width: "10%" }} label="User ID" value={formData.userid} InputProps={{ readOnly: true }} />
+                  <TextField sx={{ width: "20%" }} label="Name" value={formData.name} InputProps={{ readOnly: true }} />
 
                   <TextField
                     select
-                    sx={{width: "40%"}}
+                    sx={{ width: "40%" }}
                     label="Role"
                     name="role"
                     value={formData.role}
@@ -249,7 +244,7 @@ const Council = () => {
 
             {/* TABLE */}
             <Grid item xs={12}>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', color: "#060745" }}>
+              <Typography variant="h5" sx={{ fontWeight: "bold", color: "#060745" }}>
                 Council Member List
               </Typography>
 
@@ -278,18 +273,11 @@ const Council = () => {
                         </TableCell>
 
                         <TableCell align="right">
-                          <Button
-                            size="small"
-                            onClick={() => toggleStatus(m.council_id, m.is_active)}
-                          >
+                          <Button onClick={() => toggleStatus(m.council_id, m.is_active)}>
                             {m.is_active ? "Deactivate" : "Activate"}
                           </Button>
 
-                          <Button
-                            size="small"
-                            color="error"
-                            onClick={() => handleDeleteClick(m.council_id)}
-                          >
+                          <Button color="error" onClick={() => handleDeleteClick(m.council_id)}>
                             Delete
                           </Button>
                         </TableCell>
@@ -304,30 +292,23 @@ const Council = () => {
         </Container>
       </Box>
 
-      {/* ✅ CONFIRM DELETE DIALOG */}
+      {/* DIALOG */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete this council member?
-          </Typography>
+          <Typography>Are you sure?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
+          <Button color="error" onClick={handleConfirmDelete}>
             Delete
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ✅ SNACKBAR */}
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={3000}
-        onClose={handleCloseSnack}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert severity={snack.severity} variant="filled" onClose={handleCloseSnack}>
+      {/* SNACKBAR */}
+      <Snackbar open={snack.open} autoHideDuration={3000} onClose={handleCloseSnack}>
+        <Alert severity={snack.severity} onClose={handleCloseSnack}>
           {snack.message}
         </Alert>
       </Snackbar>
