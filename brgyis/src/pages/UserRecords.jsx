@@ -64,7 +64,7 @@ const UserRecords = () => {
   // ✅ FETCH USERS - Stabilized with useCallback to prevent infinite loops and build errors
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch(`${API_URL}/api/users`);
       if (!res.ok) throw new Error('Failed to fetch users from server');
       const data = await res.json();
       setUsers(data);
