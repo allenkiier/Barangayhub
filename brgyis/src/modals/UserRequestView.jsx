@@ -26,7 +26,7 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [officials, setOfficials] = useState([]);
-
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
@@ -55,7 +55,7 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
     if (open && request) {
       setStatus(request.status);
 
-      fetch("/api/council/active-officials")
+      fetch(`${API_URL}/api/council/active-officials`)
         .then((res) => res.json())
         .then((data) => setOfficials(data))
         .catch((err) => {
@@ -77,7 +77,7 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
 
     try {
       const res = await fetch(
-        `/api/requests/${request.req_id}/status`,
+        `${API_URL}/api/requests/${request.req_id}/status`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

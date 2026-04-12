@@ -13,7 +13,7 @@ const BarangayClearance = ({ request, officials }) => {
   const [clearanceData, setClearanceData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Helper to calculate age if not provided by API
+
   const calculateAge = (birthdate) => {
     if (!birthdate) return '';
     const today = new Date();
@@ -28,8 +28,8 @@ const BarangayClearance = ({ request, officials }) => {
     if (!transactionId) return;
     
     setLoading(true);
-    // Ensure this URL matches your server.js route
-    fetch(`/api/clearance/${transactionId}`)
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    fetch(`${API_URL}/api/clearance/${transactionId}`)
       .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();

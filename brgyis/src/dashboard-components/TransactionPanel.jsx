@@ -8,11 +8,12 @@ const TransactionPanel = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
-        const res = await fetch("/api/statistics/transactions");
+        const res = await fetch(`${API_URL}/api/statistics/transactions`);
         const result = await res.json();
         setData(result);
       } catch (err) {

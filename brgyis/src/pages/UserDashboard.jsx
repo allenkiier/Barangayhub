@@ -14,6 +14,7 @@ const UserDashboard = () => {
   const [greeting, setGreeting] = useState('');
   const [username, setUsername] = useState('');
   const [isComplete, setIsComplete] = useState(true);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   
 
@@ -34,7 +35,7 @@ const UserDashboard = () => {
     );
 
     // ✅ Fetch correct username from backend
-    fetch(`/api/user/${storedUser.userid}`)
+    fetch(`${API_URL}/api/user/${storedUser.userid}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch user");
         return res.json();
@@ -47,7 +48,7 @@ const UserDashboard = () => {
         setUsername("User"); // fallback
       });
 
-      fetch(`/api/user/${storedUser.userid}`)
+      fetch(`${API_URL}/api/user/${storedUser.userid}`)
       .then((res) => res.json())
       .then((data) => {
         setUsername(data.user_name);

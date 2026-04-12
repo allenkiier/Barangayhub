@@ -26,6 +26,7 @@ const OpenMessages = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   // ✅ NEW STATES
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -40,7 +41,7 @@ const OpenMessages = () => {
   // FETCH
   const fetchMessages = async () => {
     try {
-      const res = await fetch("/api/open-messages");
+      const res = await fetch(`${API_URL}/api/open-messages`);
       const data = await res.json();
       setMessages(data);
     } catch (err) {
@@ -63,7 +64,7 @@ const OpenMessages = () => {
   const handleDelete = async () => {
     try {
       const res = await fetch(
-        `/api/open-messages/${toDelete}`,
+        `${API_URL}/api/open-messages/${toDelete}`,
         { method: "DELETE" }
       );
 

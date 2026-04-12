@@ -24,13 +24,13 @@ const AdminRequest = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [actionType, setActionType] = useState(""); // approve or reject
   const [selectedId, setSelectedId] = useState(null);
-
+   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   // ================= FETCH =================
   const fetchRequests = async () => {
     try {
       const token = localStorage.getItem("token");
-
-      const res = await fetch("/api/admin/requests", {
+     
+      const res = await fetch(`${API_URL}/api/admin/requests`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -64,8 +64,8 @@ const AdminRequest = () => {
 
       const endpoint =
         actionType === "approve"
-          ? `/api/admin/approve/${selectedId}`
-          : `/api/admin/reject/${selectedId}`;
+          ? `${API_URL}/api/admin/approve/${selectedId}`
+          : `${API_URL}/api/admin/reject/${selectedId}`;
 
       const res = await fetch(`/${endpoint}`, {
         method: "POST",

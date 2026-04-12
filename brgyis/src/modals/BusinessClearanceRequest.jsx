@@ -21,6 +21,7 @@ const BusinessClearanceRequest = ({ open, onClose, userid }) => {
   const [businessAddress, setBusinessAddress] = useState("");
   const [appType, setAppType] = useState("");
   const [loading, setLoading] = useState(false);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -67,7 +68,7 @@ const BusinessClearanceRequest = ({ open, onClose, userid }) => {
 
     try {
       const res = await fetch(
-        "/api/business-clearance/submit",
+        `${API_URL}/api/business-clearance/submit`,
         {
           method: "POST",
           headers: {

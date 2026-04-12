@@ -55,6 +55,7 @@ const TransactionList = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState(null);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   // Safely get User Data
   const getUserData = () => {
@@ -71,7 +72,7 @@ const TransactionList = () => {
   const currentUserId = userData?.userid;
 
   useEffect(() => {
-    fetch('/api/transactions')
+    fetch(`${API_URL}/api/transactions`)
       .then(res => res.json())
       .then(data => {
         setServices(data);

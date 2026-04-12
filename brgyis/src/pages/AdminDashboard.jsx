@@ -11,6 +11,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate(); // 2. Initialize navigate
   const [greeting, setGreeting] = useState('');
   const [username, setUsername] = useState('');
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     // ✅ 3. CHECK-ON-MOUNT (Security Guard + Role Check)
@@ -34,8 +35,8 @@ const AdminDashboard = () => {
       hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening'
     );
 
-    // ✅ Fetch correct username from backend
-    fetch(`/api/user/${storedUser.userid}`)
+
+    fetch(`${API_URL}/api/user/${storedUser.userid}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch user");
         return res.json();

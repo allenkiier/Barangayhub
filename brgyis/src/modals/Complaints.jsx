@@ -17,6 +17,7 @@ const Complaints = ({ open, onClose }) => {
   const [contactNum, setContactNum] = useState("");
   const [narrative, setNarrative] = useState("");
   const [loading, setLoading] = useState(false);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -55,7 +56,7 @@ const Complaints = ({ open, onClose }) => {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/complaints", {
+      const res = await fetch(`${API_URL}/api/complaints`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

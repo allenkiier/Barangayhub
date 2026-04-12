@@ -16,15 +16,17 @@ import {
 } from "@mui/material";
 import AdminSideBar from "../components/AdminSideBar";
 
+
 const PasswordManager = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingToken, setProcessingToken] = useState(null);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const fetchRequests = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await api.get("/api/admin/reset-requests", {
+      const res = await api.get(`${API_URL}/api/admin/reset-requests`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -47,7 +49,7 @@ const PasswordManager = () => {
     try {
       const token = localStorage.getItem("token");
       await api.post(
-        `/api/admin/reset-approve/${tokenValue}`,
+        `${API_URL}/api/admin/reset-approve/${tokenValue}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

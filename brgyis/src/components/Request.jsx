@@ -22,6 +22,7 @@ const Request = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   // ===================== FILTER =====================
   const filteredRequests = requests.filter((req) => {
@@ -36,7 +37,7 @@ const Request = () => {
 
   // ===================== FETCH =====================
   const fetchRequests = () => {
-    fetch("/api/requests/all")
+    fetch(`${API_URL}/api/requests/all`)
       .then(res => res.json())
       .then(data => {
         setRequests(data);

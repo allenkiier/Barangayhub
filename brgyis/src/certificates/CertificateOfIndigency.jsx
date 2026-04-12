@@ -16,7 +16,8 @@ const CertificateOfIndigency = ({ request, officials}) => {
   useEffect(() => {
     if (!transactionId) return;
     setLoading(true);
-    fetch(`/api/indigency/${transactionId}`)
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    fetch(`${API_URL}/api/indigency/${transactionId}`)
       .then(res => res.json())
       .then(data => {
         console.log("CERT DATA:", data);

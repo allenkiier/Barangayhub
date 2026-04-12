@@ -36,7 +36,7 @@ const Profiling = () => {
     province: "",
     residence_start_date: "",
   });
-
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -55,7 +55,7 @@ const Profiling = () => {
 
     if (!userid) return;
 
-    fetch(`/api/user/${userid}`)
+    fetch(`${API_URL}/api/user/${userid}`)
       .then((res) => res.json())
       .then((data) => {
         setFormData((prev) => ({
@@ -83,7 +83,7 @@ const Profiling = () => {
     e.preventDefault();
     try {
       const res = await fetch(
-        `/api/user/${formData.userid}/profile`,
+        `${API_URL}/api/user/${formData.userid}/profile`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

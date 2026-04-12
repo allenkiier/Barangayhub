@@ -20,6 +20,7 @@ import CreateIcon from '@mui/icons-material/Create';
 const WalkIns = () => {
   const [expanded, setExpanded] = useState(false);
   const [type, setType] = useState('suggestion');
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const [sender, setSender] = useState('');
   const [contactNum, setContactNum] = useState('');
@@ -58,8 +59,8 @@ const WalkIns = () => {
     try {
       const endpoint =
         type === "complaint"
-          ? "/api/complaints"
-          : "/api/suggestions";
+          ? `${API_URL}/api/complaints`
+          : `${API_URL}/api/suggestions`;
 
       const res = await fetch(endpoint, {
         method: "POST",

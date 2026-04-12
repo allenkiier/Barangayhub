@@ -21,6 +21,7 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
 
   const [userid, setUserid] = useState(null);
   const [purpose, setPurpose] = useState("");
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -68,7 +69,7 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
       setUserid(uid);
       setLoading(true);
 
-      fetch(`/api/user/${uid}`)
+      fetch(`${API_URL}/api/user/${uid}`)
         .then((res) => res.json())
         .then((data) => {
           setFormData({
@@ -107,7 +108,7 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/brgy-clearance/submit", {
+      const res = await fetch(`${API_URL}/api/brgy-clearance/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

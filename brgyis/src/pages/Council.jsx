@@ -36,6 +36,7 @@ const Council = () => {
   const [selectedUser, setSelectedUser] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const [formData, setFormData] = useState({
     userid: "",
@@ -69,7 +70,7 @@ const Council = () => {
 
   const handleConfirmDelete = async () => {
     try {
-      await api.delete(`/api/council/delete/${selectedDeleteId}`);
+      await api.delete(`${API_URL}/api/council/delete/${selectedDeleteId}`);
       showSnack("Deleted successfully");
       setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
@@ -85,8 +86,8 @@ const Council = () => {
     try {
       setLoading(true);
       const [adminRes, councilRes] = await Promise.all([
-        api.get("/api/users/admins"),
-        api.get("/api/council/all")
+        api.get(`${API_URL}/api/users/admins`),
+        api.get(`${API_URL}/api/council/all`)
       ]);
       setAdmins(adminRes.data || []);
       setCouncilMembers(councilRes.data || []);
@@ -126,7 +127,7 @@ const Council = () => {
 
   const handleSubmit = async () => {
     try {
-      await api.post("/api/council/add", {
+      await api.post(`${API_URL}/api/council/add`, {
         ...formData,
         is_active: formData.is_active ? 1 : 0,
       });
@@ -143,7 +144,7 @@ const Council = () => {
   const toggleStatus = async (id, currentStatus) => {
     try {
       const newStatus = currentStatus === 1 ? 0 : 1;
-      await api.put(`/api/council/update-status/${id}`, {
+      await api.put(`${API_URL}/api/council/update-status/${id}`, {
         is_active: newStatus,
       });
       showSnack("Status updated");

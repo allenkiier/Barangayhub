@@ -15,7 +15,7 @@ export default function ResetPass({ open, onClose, token, showAlert }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   // Matching Feature: Check if they match and aren't empty
   const isMismatch = password !== confirmPassword && confirmPassword.length > 0;
   const isInvalid = !password || !confirmPassword || isMismatch;
@@ -31,7 +31,7 @@ export default function ResetPass({ open, onClose, token, showAlert }) {
     try {
       // NOTE: Ensure your backend route is: /api/auth/reset-password/:token
       const res = await api.post(
-        `/api/auth/reset-password/${token}`,
+        `${API_URL}/api/auth/reset-password/${token}`,
         { newPassword: password }
       );
 

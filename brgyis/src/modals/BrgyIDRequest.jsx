@@ -29,6 +29,7 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
     message: "",
     severity: "success"
   });
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({
@@ -73,7 +74,7 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
       setUserid(uid);
       setLoading(true);
 
-      fetch(`/api/user/${uid}`)
+      fetch(`${API_URL}/api/user/${uid}`)
         .then((res) => res.json())
         .then((data) => {
           setFormData((prev) => ({
@@ -119,7 +120,7 @@ const BrgyIDRequest = ({ open, onClose, serviceName }) => {
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/brgyid/submit", {
+      const res = await fetch(`${API_URL}/api/brgyid/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

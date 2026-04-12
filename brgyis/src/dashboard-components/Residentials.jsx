@@ -8,11 +8,12 @@ const Residentials = () => {
   const [mostYear, setMostYear] = useState(null);
   const [demographics, setDemographics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchResidentials = async () => {
       try {
-        const res = await fetch("/api/statistics/residentials");
+        const res = await fetch(`${API_URL}/api/statistics/residentials`);
         const result = await res.json();
 
         const trend = result.trend || [];

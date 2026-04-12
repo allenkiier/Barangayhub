@@ -19,6 +19,7 @@ const Suggestion = ({ open, onClose }) => {
   const [loading, setLoading] = useState(false);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -55,7 +56,7 @@ const Suggestion = ({ open, onClose }) => {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/suggestions", {
+      const res = await fetch(`${API_URL}/api/suggestions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

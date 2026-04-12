@@ -21,7 +21,7 @@ const UserSignup = () => {
   const [confirm, setConfirm] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   // Snackbar State
   const [snackbar, setSnackbar] = useState({ open: false, msg: "", severity: "error" });
 
@@ -54,7 +54,7 @@ const UserSignup = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/signup", {
+      const response = await fetch(`${API_URL}/api/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

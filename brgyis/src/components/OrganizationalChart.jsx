@@ -45,10 +45,10 @@ const MemberCard = ({ name, role, color = "#1976d2" }) => {
 const OrganizationalChart = () => {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
-
+ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const fetchCouncil = async () => {
     try {
-      const res = await api.get("/api/council/list");
+      const res = await api.get(`${API_URL}/api/council/list`);
       setChartData(res.data);
     } catch (err) {
       console.error("Error fetching council chart:", err);

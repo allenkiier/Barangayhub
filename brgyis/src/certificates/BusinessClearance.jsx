@@ -20,8 +20,8 @@ const BusinessClearance = ({ request, officials }) => {
     }
 
     setLoading(true);
-
-    fetch(`/api/business-clearance/${transactionId}`)
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    fetch(`${API_URL}/api/business-clearance/${transactionId}`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();

@@ -10,8 +10,8 @@ const BarangayIDApplication = ({ request}) => {
     if (!transactionId) return;
     setLoading(true);
     
-    // UPDATED URL: matches your server.js app.get('/api/brgyid/:transaction_id')
-    fetch(`/api/brgyid/${transactionId}`)
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    fetch(`${API_URL}/api/brgyid/${transactionId}`)
       .then((res) => res.json())
       .then((data) => {
         console.log("FORM DATA:", data);

@@ -11,6 +11,7 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import IconButton from "@mui/material/IconButton";
 import UserRequestView from '../modals/UserRequestView';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const UserRequest = () => {
   const [requests, setRequests] = useState([]);
@@ -37,7 +38,7 @@ const UserRequest = () => {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await fetch(`/api/requests/user/${userid}`);
+        const res = await fetch(`${API_URL}/api/requests/user/${userid}`);
         const data = await res.json();
 
         if (res.ok) {

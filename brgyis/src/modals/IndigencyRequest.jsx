@@ -13,7 +13,7 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [appType, setAppType] = useState('indigency');
-
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -52,7 +52,7 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
 
     setLoading(true);
 
-    fetch(`/api/user/${resolvedUserId}/form-indigency`)
+    fetch(`${API_URL}/api/user/${resolvedUserId}/form-indigency`)
       .then(res => res.json())
       .then(data => {
         setFormData(data);
@@ -84,7 +84,7 @@ const IndigencyRequest = ({ open, onClose, serviceName, userId }) => {
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/indigency/submit', {
+      const res = await fetch(`${API_URL}/api/indigency/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

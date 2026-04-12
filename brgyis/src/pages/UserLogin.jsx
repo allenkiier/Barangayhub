@@ -23,6 +23,7 @@ export default function UserLogin() {
   const [password, setPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   // Snackbar
   const [openSnackbar, setOpenSnackbar] = useState(false);
@@ -65,7 +66,7 @@ export default function UserLogin() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/login", {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -14,7 +14,7 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
     incident_address: "",
     narrative: ""
   });
-
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
   const [appType, setAppType] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -55,7 +55,7 @@ const IncidentReportRequest = ({ open, onClose, userid }) => {
     setLoading(true);
 
     try {
-      await api.post("/api/incident-report/submit", {
+      await api.post(`${API_URL}/api/incident-report/submit`, {
         userid,
         incident_date: formData.incident_date,
         incident_time: formData.incident_time,

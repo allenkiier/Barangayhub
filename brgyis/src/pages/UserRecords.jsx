@@ -25,6 +25,7 @@ import {
 
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const UserRecords = () => {
   const [users, setUsers] = useState([]);
@@ -114,7 +115,7 @@ const UserRecords = () => {
       // Use user.id or user.userid depending on your API response mapping
       const targetId = selectedUser.id || selectedUser.userid;
       const res = await fetch(
-        `/api/users/${targetId}`,
+        `${API_URL}/api/users/${targetId}`,
         {
           method: 'PUT',
           headers: {
@@ -146,7 +147,7 @@ const UserRecords = () => {
     try {
       const targetId = userToDelete.id || userToDelete.userid;
       const res = await fetch(
-        `/api/users/${targetId}`,
+        `${API_URL}/api/users/${targetId}`,
         {
           method: 'DELETE'
         }

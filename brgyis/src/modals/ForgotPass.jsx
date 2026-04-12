@@ -14,6 +14,7 @@ import api from "../api";
 export default function ForgotPass({ open, onClose, showAlert, onVerified }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   // REQUEST RESET - Fills the password-resets table for Admin to see
   const handleRequest = async () => {
@@ -25,7 +26,7 @@ export default function ForgotPass({ open, onClose, showAlert, onVerified }) {
     setLoading(true);
     try {
       const res = await api.post(
-        "/api/auth/forgot-password",
+        `${API_URL}/api/auth/forgot-password`,
         { email }
       );
       showAlert(res.data.message, "success");
@@ -51,7 +52,7 @@ export default function ForgotPass({ open, onClose, showAlert, onVerified }) {
     setLoading(true);
     try {
       const res = await api.post(
-        "/api/auth/check-reset-status",
+        `${API_URL}/api/auth/check-reset-status`,
         { email }
       );
 
