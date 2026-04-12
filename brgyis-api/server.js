@@ -1337,11 +1337,11 @@ app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) =
         if (err) reject(err);
         else resolve(this);
       });
-    }); // <--- Did you miss this closing paren?
+    }); 
   };
 
   try {
-    const result = await runQuery("DELETE FROM users WHERE userid = ?", [id]);
+    const result = await runQuery("DELETE FROM user WHERE userid = ?", [id]);
     if (result.changes === 0) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -1349,7 +1349,7 @@ app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) =
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-}); // <--- This matches the 'app.delete(' at the top
+}); 
 
 app.put('/api/users/:id', (req, res) => {
   const { id } = req.params;
