@@ -1330,30 +1330,50 @@ app.get('/api/users', (req, res) => {
 app.delete('/api/users/:id', authenticateToken, requireAdmin, (req, res) => {
   const { id } = req.params;
 
-  db.serialize(() => {
-    db.run("BEGIN TRANSACTION");
+  // Use a helper function to run queries as Promises for cleaner error handling
+  const runQuery = (sql, params) => {
+    return new Promise((resolve, reject) => {
+      db.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve(this);
+      });
+    });
+  };
 
-    // 1. Delete from all tables that REFERENCE the userid
-    db.run("DELETE FROM council WHERE userid = ?", [id]);
-    db.run("DELETE FROM request WHERE userid = ?", [id]);
-    db.run("DELETE FROM indig_req WHERE userid = ?", [id]);
-    db.run("DELETE FROM brgyid_req WHERE userid = ?", [id]);
-    db.run("DELETE FROM brgy_clearance_req WHERE userid = ?", [id]);
-    db.run("DELETE FROM business_clearance_req WHERE userid = ?", [id]);
-    db.run("DELETE FROM incident_reports WHERE userid = ?", [id]);
-    db.run("DELETE FROM password_resets WHERE userid = ?", [id]);
+  async function performDelete() {
+    try {
+      await runQuery("BEGIN TRANSACTION");
 
-    // 2. Finally, delete the user
-    db.run("DELETE FROM user WHERE userid = ?", [id], function (err) {
-      if (err) {
-        db.run("ROLLBACK");
-        return res.status(500).json({ error: err.message });
+      // 1. Delete from all child tables
+      const tables = [
+        "council", "request", "indig_req", "brgyid_req", 
+        "brgy_clearance_req", "business_clearance_req", 
+        "incident_reports", "password_resets"
+      ];
+
+      for (const table of tables) {
+        await runQuery(`DELETE FROM ${table} WHERE userid = ?`, [id]);
       }
 
-      db.run("COMMIT");
+      // 2. Delete the parent user
+      const result = await runQuery("DELETE FROM user WHERE userid = ?", [id]);
+
+      if (result.changes === 0) {
+        await runQuery("ROLLBACK");
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await runQuery("COMMIT");
       res.json({ message: "User and all associated records deleted successfully" });
-    });
-  });
+
+    } catch (err) {
+      await runQuery("ROLLBACK");
+      console.error("Delete Error:", err.message);
+      res.status(500).json({ error: "Failed to delete user: " + err.message });
+    }
+  }
+
+  performDelete();
 });
 
 app.put('/api/users/:id', (req, res) => {
