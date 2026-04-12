@@ -1332,57 +1332,55 @@ app.get('/api/users', (req, res) => {
 app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
-  // Helper to wrap db.run in a Promise for async/await usage
   const runQuery = (sql, params) => {
     return new Promise((resolve, reject) => {
       db.run(sql, params, function (err) {
         if (err) reject(err);
         else resolve(this);
       });
-    });
+    }); 
   };
 
   try {
-    // 1. DELETE DEPENDENCIES FIRST
-    // We must clear these because they reference userid as a Foreign Key
-    console.log(`Starting cleanup for User ID: ${id}`);
+    await runQuery("BEGIN TRANSACTION");
 
-    await runQuery("DELETE FROM password_resets WHERE userid = ?", [id]);
-    await runQuery("DELETE FROM council WHERE userid = ?", [id]);
-    
-    // Cleanup specific application tables linked to the user
-    await runQuery("DELETE FROM indig_req WHERE userid = ?", [id]);
-    await runQuery("DELETE FROM brgyid_req WHERE userid = ?", [id]);
-    await runQuery("DELETE FROM brgy_clearance_req WHERE userid = ?", [id]);
-    await runQuery("DELETE FROM business_clearance_req WHERE userid = ?", [id]);
-    await runQuery("DELETE FROM incident_reports WHERE userid = ?", [id]);
-    
-    // Cleanup the main request log
-    await runQuery("DELETE FROM request WHERE userid = ?", [id]);
+    console.log(`[Admin] Attempting full purge for User ID: ${id}`);
 
-    // 2. FINALLY DELETE THE USER
-    // After dependencies are gone, this will no longer throw a constraint error
-    const result = await runQuery("DELETE FROM user WHERE userid = ?", [id]);
+    const tables = [
+      "password_resets", 
+      "council", 
+      "indig_req", 
+      "brgyid_req", 
+      "brgy_clearance_req", 
+      "business_clearance_req", 
+      "incident_reports", 
+      "request"
+    ];
+
+    for (const table of tables) {
+      await runQuery(`DELETE FROM ${table} WHERE userid = ?`, [id]);
+    }
+
+    const result = await runQuery(
+      "DELETE FROM user WHERE userid = ? OR CAST(userid AS TEXT) = ?", 
+      [id, id]
+    );
+
+    await runQuery("COMMIT");
 
     if (result.changes === 0) {
-      console.log(`Delete failed: No user found with ID ${id}`);
+      console.warn(`[Admin] Delete failed: User ${id} not found.`);
       return res.status(404).json({ error: "User not found in database." });
     }
 
-    console.log(`Successfully deleted user ${id} and all related records.`);
-    res.json({ message: "User and all associated records deleted successfully" });
+    console.log(`[Admin] Purge successful for User ${id}.`);
+    res.json({ message: "User and all associated data deleted successfully" });
 
   } catch (err) {
+    // 5. Rollback on error so the DB doesn't stay in a partial delete state
+    await runQuery("ROLLBACK");
     console.error("CRITICAL DELETE ERROR:", err.message);
-    
-    // If it still fails, it's likely a table we missed
-    if (err.message.includes("FOREIGN KEY constraint failed")) {
-      return res.status(500).json({ 
-        error: "Cannot delete user: They are still linked to other records not covered in the cleanup." 
-      });
-    }
-    
-    res.status(500).json({ error: "Database error: " + err.message });
+    res.status(500).json({ error: "Internal Server Error: " + err.message });
   }
 });
 

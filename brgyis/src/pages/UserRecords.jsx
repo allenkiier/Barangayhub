@@ -141,34 +141,37 @@ const UserRecords = () => {
   };
 
   const handleConfirmDelete = async () => {
-    try {
-      const targetId = userToDelete.id || userToDelete.userid;
-      const token = localStorage.getItem('token'); 
+  try {
+    // Force targetId to be a string/number that matches your DB userid
+    const targetId = userToDelete.id || userToDelete.userid;
+    const token = localStorage.getItem('token'); 
 
-      const res = await fetch(`${API_URL}/api/users/${targetId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+    console.log("Attempting to delete ID:", targetId); // DEBUG LOG
 
-      if (res.status === 401 || res.status === 403) {
-        throw new Error('Unauthorized: Admin access required.');
+    const res = await fetch(`${API_URL}/api/users/${targetId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
+    });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Constraint Error: User has active records.');
+    const data = await res.json();
 
-      fetchUsers();
-      showSnack('User deleted successfully');
-    } catch (err) {
-      showSnack(err.message, 'error');
-    } finally {
-      setDeleteDialogOpen(false);
-      setUserToDelete(null);
+    if (!res.ok) {
+      throw new Error(data.error || 'Deletion failed');
     }
-  };
+
+    setUsers(prev => prev.filter(u => (u.id || u.userid) !== targetId));
+    
+    showSnack('User deleted successfully');
+  } catch (err) {
+    showSnack(err.message, 'error');
+  } finally {
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
+  }
+};
 
   return (
     <Box sx={{ display: 'flex' }}>
