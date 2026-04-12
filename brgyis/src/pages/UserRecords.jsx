@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import AdminSideBar from '../components/AdminSideBar';
 import {
   Box,
@@ -52,28 +52,30 @@ const UserRecords = () => {
   });
 
   // ✅ SNACKBAR
-  const showSnack = (message, severity = 'success') => {
+  const showSnack = useCallback((message, severity = 'success') => {
     setSnack({ open: true, message, severity });
-  };
+  }, []);
 
   const handleCloseSnack = () => {
     setSnack({ ...snack, open: false });
   };
 
-  // ✅ FETCH USERS
-  const fetchUsers = async () => {
+  // ✅ FETCH USERS - Stabilized with useCallback to prevent infinite loops and build errors
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch('http://localhost:5000/api/users');
+      if (!res.ok) throw new Error('Failed to fetch users from server');
       const data = await res.json();
       setUsers(data);
     } catch (err) {
-      showSnack('Failed to fetch users', 'error');
+      showSnack(err.message, 'error');
     }
-  };
+  }, [showSnack]);
 
+  // ✅ EFFECT - Runs only when fetchUsers changes (which is never, due to empty dependency array in useCallback)
   useEffect(() => {
     fetchUsers();
-  });
+  }, [fetchUsers]);
 
   // ✅ SEARCH FILTER
   const filteredUsers = users.filter((user) => {
@@ -85,7 +87,7 @@ const UserRecords = () => {
       user.sex?.toLowerCase().includes(keyword) ||
       user.civil_status?.toLowerCase().includes(keyword) ||
       user.contact_no?.toLowerCase().includes(keyword) ||
-      String(user.id).includes(keyword)
+      String(user.id || user.userid).includes(keyword)
     );
   });
 
@@ -109,8 +111,10 @@ const UserRecords = () => {
   // ✅ UPDATE
   const handleUpdate = async () => {
     try {
+      // Use user.id or user.userid depending on your API response mapping
+      const targetId = selectedUser.id || selectedUser.userid;
       const res = await fetch(
-        `http://localhost:5000/api/users/${selectedUser.id}`,
+        `http://localhost:5000/api/users/${targetId}`,
         {
           method: 'PUT',
           headers: {
@@ -121,7 +125,7 @@ const UserRecords = () => {
       );
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Update failed');
 
       setOpen(false);
       fetchUsers();
@@ -140,15 +144,16 @@ const UserRecords = () => {
   // ✅ CONFIRM DELETE
   const handleConfirmDelete = async () => {
     try {
+      const targetId = userToDelete.id || userToDelete.userid;
       const res = await fetch(
-        `http://localhost:5000/api/users/${userToDelete.id}`,
+        `http://localhost:5000/api/users/${targetId}`,
         {
           method: 'DELETE'
         }
       );
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Constraint Error: User has active records.');
 
       fetchUsers();
       showSnack('User deleted successfully');
@@ -197,10 +202,10 @@ const UserRecords = () => {
 
                 <TableBody>
                   {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.id}</TableCell>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                    <TableRow key={user.id || user.userid}>
+                      <TableCell>{user.id || user.userid}</TableCell>
+                      <TableCell>{user.name || user.user_name}</TableCell>
+                      <TableCell>{user.email || user.email_ad}</TableCell>
                       <TableCell>{user.sex}</TableCell>
                       <TableCell>{user.civil_status}</TableCell>
                       <TableCell>{user.contact_no}</TableCell>
@@ -278,7 +283,7 @@ const UserRecords = () => {
         <DialogContent>
           <Typography>
             Are you sure you want to delete{" "}
-            <b>{userToDelete?.name}</b>?
+            <b>{userToDelete?.name || userToDelete?.user_name}</b>?
           </Typography>
         </DialogContent>
 
