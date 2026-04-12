@@ -1485,7 +1485,6 @@ app.get('/api/statistics', (req, res) => {
           if (err) return res.status(500).json({ error: err.message });
           stats.businesses = busRow.count;
 
-          // ✅ Final response
           res.json(stats);
         });
       });
@@ -1847,6 +1846,73 @@ app.post("/api/auth/reset-password", (req, res) => {
       });
     }
   );
+});
+
+app.get('/api/users/filter', (req, res) => {
+  const { type } = req.query;
+
+  let query = `
+    SELECT 
+      user_name AS name,
+      birthdate,
+      contact_no,
+
+      house_no,
+      street,
+      barangay,
+      municipality,
+      province
+
+    FROM user
+    WHERE isAdmin = 0
+  `;
+
+  // FILTERS
+  if (type === "male") {
+    query += " AND LOWER(sex) = 'male'";
+  } 
+  else if (type === "female") {
+    query += " AND LOWER(sex) = 'female'";
+  } 
+  else if (type === "pwd") {
+    query += " AND isPWD = 1";
+  } 
+  else if (type === "senior") {
+    query += " AND isSenior = 1";
+  }
+
+  query += " ORDER BY user_name ASC";
+
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      console.error(err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    const formatted = rows.map(u => {
+      const age = u.birthdate
+        ? new Date().getFullYear() - new Date(u.birthdate).getFullYear()
+        : "";
+
+      const address = [
+        u.house_no,
+        u.street,
+        u.barangay,
+        u.municipality,
+        u.province
+      ].filter(Boolean).join(", ");
+
+      return {
+        name: u.name,
+        age,
+        address,
+        birthdate: u.birthdate,
+        contact_no: u.contact_no
+      };
+    });
+
+    res.json(formatted);
+  });
 });
 // ===================== START SERVER =====================
 app.listen(PORT, '0.0.0.0', () => {

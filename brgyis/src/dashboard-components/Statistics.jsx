@@ -19,6 +19,9 @@ import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 
 import { PieChart } from "@mui/x-charts/PieChart";
 
+// ✅ ADD THIS
+import RecordCounts from "./RecordCounts";
+
 const Statistics = () => {
   const [stats, setStats] = useState({
     population: 0,
@@ -35,6 +38,10 @@ const Statistics = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalData, setModalData] = useState([]);
+  const [modalTitle, setModalTitle] = useState("");
 
   const hoverItem = {
     display: "flex",
@@ -66,6 +73,20 @@ const Statistics = () => {
 
     fetchStats();
   }, []);
+
+  // ✅ ADD THIS FUNCTION
+  const openModal = async (type, title) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/users/filter?type=${type}`);
+      const data = await res.json();
+
+      setModalData(data);
+      setModalTitle(title);
+      setModalOpen(true);
+    } catch (err) {
+      console.error("Modal fetch error:", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -110,12 +131,20 @@ const Statistics = () => {
             <Typography>Households: {stats.households}</Typography>
           </Box>
 
-          <Box sx={{ ...hoverItem }}>
+          {/* ✅ MALE CLICK */}
+          <Box 
+            sx={{ ...hoverItem }} 
+            onClick={() => openModal("male", "Male Residents")}
+          >
             <Man2Icon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
             <Typography>Male Counts: {stats.male}</Typography>
           </Box>
 
-          <Box sx={{ ...hoverItem }}>
+          {/* ✅ FEMALE CLICK */}
+          <Box 
+            sx={{ ...hoverItem }} 
+            onClick={() => openModal("female", "Female Residents")}
+          >
             <WomanIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
             <Typography>Female Counts: {stats.female}</Typography>
           </Box>
@@ -135,12 +164,20 @@ const Statistics = () => {
             <Typography>Widowed Counts: {stats.widowed}</Typography>
           </Box>
 
-          <Box sx={{ ...hoverItem }}>
+          {/* ✅ PWD CLICK */}
+          <Box 
+            sx={{ ...hoverItem }} 
+            onClick={() => openModal("pwd", "PWD Residents")}
+          >
             <AccessibleIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
             <Typography>PWD Counts: {stats.pwd}</Typography>
           </Box>
 
-          <Box sx={{ ...hoverItem }}>
+          {/* ✅ SENIOR CLICK */}
+          <Box 
+            sx={{ ...hoverItem }} 
+            onClick={() => openModal("senior", "Senior Citizens")}
+          >
             <ElderlyIcon sx={{ color: "gray", fontSize: 18, mr: 1 }} />
             <Typography>Senior Citizen Counts: {stats.senior}</Typography>
           </Box>
@@ -181,7 +218,7 @@ const Statistics = () => {
               height={130}
               hideLegend
               slotProps={{
-                legend: { hidden: true } // ✅ removed legend
+                legend: { hidden: true }
               }}
             />
             <Typography textAlign="center" fontWeight={600}>
@@ -205,7 +242,7 @@ const Statistics = () => {
               height={130}
               hideLegend
               slotProps={{
-                legend: { hidden: true } // ✅ removed legend
+                legend: { hidden: true }
               }}
             />
             <Typography textAlign="center" fontSize={12} fontWeight={600}>
@@ -215,6 +252,13 @@ const Statistics = () => {
 
         </Grid>
       </Grid>
+
+      <RecordCounts
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalTitle}
+        data={modalData}
+      />
 
     </Box>
   );
