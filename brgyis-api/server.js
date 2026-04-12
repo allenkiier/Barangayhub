@@ -240,17 +240,6 @@ db.serialize(() => {
   });
 
 
-  db.run(`
-  CREATE TABLE IF NOT EXISTS password_resets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    userid INTEGER,
-    token TEXT UNIQUE,
-    status TEXT DEFAULT 'pending',
-    expires_at TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (userid) REFERENCES user(userid)
-  )
-`);
 // ===================== HELPERS =====================
 const calculateAge = (birthdate) => {
   if (!birthdate) return '';
@@ -1038,7 +1027,7 @@ app.post('/api/incident-report/submit', (req, res) => {
         transaction_id, userid, user_name, address, 
         incident_date, incident_time, incident_address, narrative, app_type
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [transaction_id, userid, user.user_name, homeAddress, incident_date, incident_time, incident_address, narrative],
+      [transaction_id, userid, user.user_name, homeAddress, incident_date, incident_time, incident_address, narrative, app_type],
       function (err) {
         if (err) {
           console.error("Table Insert Error:", err.message);
@@ -1338,10 +1327,13 @@ app.get('/api/users', (req, res) => {
   );
 });
 
-app.delete('/api/users/:id', (req, res) => {
+app.delete('/api/users/:id', authenticateToken, requireAdmin, (req, res) => {
   const { id } = req.params;
 
   db.serialize(() => {
+    db.run("BEGIN TRANSACTION");
+
+    // 1. Delete from all tables that REFERENCE the userid
     db.run("DELETE FROM council WHERE userid = ?", [id]);
     db.run("DELETE FROM request WHERE userid = ?", [id]);
     db.run("DELETE FROM indig_req WHERE userid = ?", [id]);
@@ -1351,16 +1343,15 @@ app.delete('/api/users/:id', (req, res) => {
     db.run("DELETE FROM incident_reports WHERE userid = ?", [id]);
     db.run("DELETE FROM password_resets WHERE userid = ?", [id]);
 
+    // 2. Finally, delete the user
     db.run("DELETE FROM user WHERE userid = ?", [id], function (err) {
       if (err) {
+        db.run("ROLLBACK");
         return res.status(500).json({ error: err.message });
       }
 
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      res.json({ message: "User deleted successfully" });
+      db.run("COMMIT");
+      res.json({ message: "User and all associated records deleted successfully" });
     });
   });
 });
@@ -1744,7 +1735,7 @@ app.post("/api/auth/reset-password/:token", async (req, res) => {
       const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
       // 2. Update the passwordhash column with the HASHED version
-      const updateSql = `UPDATE user SET passwordhash = ? WHERE userid = ?`;
+      const updateSql = `UPDATE user SET passwordHash = ? WHERE userid = ?`;
 
       db.run(updateSql, [hashedPassword, userId], function(updateErr) {
         if (updateErr) {
