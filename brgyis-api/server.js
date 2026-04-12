@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.JWT_SECRET || "fallback_secret";
 
 app.use(cors({
-  origin: '*',
+  origin: 'https://brgy-joyao-joyao-is.up.railway.app',
   credentials: true
 }));
 app.use(express.json());
