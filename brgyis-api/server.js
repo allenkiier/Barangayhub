@@ -1328,18 +1328,45 @@ app.get('/api/users', (req, res) => {
   );
 });
 
-app.delete('/api/users/:id', authenticateToken, requireAdmin, (req, res) => {
+app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
-  // Use a helper function to run queries as Promises for cleaner error handling
+  // Helper function to run queries as Promises
   const runQuery = (sql, params) => {
     return new Promise((resolve, reject) => {
       db.run(sql, params, function (err) {
         if (err) reject(err);
-        else resolve(this);
+        else resolve(this); // "this" contains "changes", which tells us if a row was actually deleted
       });
     });
   };
+
+  try {
+    // 1. EXECUTE THE DELETE
+    // IMPORTANT: Make sure your table column is named 'userid' or 'id' to match your DB
+    const result = await runQuery("DELETE FROM users WHERE userid = ?", [id]);
+
+    // 2. CHECK IF ANYTHING WAS ACTUALLY DELETED
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "User not found in database." });
+    }
+
+    // 3. SEND SUCCESS RESPONSE
+    res.json({ message: "User deleted successfully from the database." });
+
+  } catch (err) {
+    console.error("DELETE Error:", err.message);
+
+    // Handle Foreign Key Constraints (e.g., user has existing requests/transactions)
+    if (err.message.includes("FOREIGN KEY constraint failed")) {
+      return res.status(400).json({ 
+        error: "Cannot delete user: They have active records or transactions linked to them." 
+      });
+    }
+
+    res.status(500).json({ error: "Internal server error during deletion." });
+  }
+});
 
   async function performDelete() {
     try {
