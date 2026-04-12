@@ -1331,78 +1331,25 @@ app.get('/api/users', (req, res) => {
 app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
 
-  // Helper function to run queries as Promises
   const runQuery = (sql, params) => {
     return new Promise((resolve, reject) => {
       db.run(sql, params, function (err) {
         if (err) reject(err);
-        else resolve(this); // "this" contains "changes", which tells us if a row was actually deleted
+        else resolve(this);
       });
-    });
+    }); // <--- Did you miss this closing paren?
   };
 
   try {
-    // 1. EXECUTE THE DELETE
-    // IMPORTANT: Make sure your table column is named 'userid' or 'id' to match your DB
     const result = await runQuery("DELETE FROM users WHERE userid = ?", [id]);
-
-    // 2. CHECK IF ANYTHING WAS ACTUALLY DELETED
     if (result.changes === 0) {
-      return res.status(404).json({ error: "User not found in database." });
+      return res.status(404).json({ error: "User not found" });
     }
-
-    // 3. SEND SUCCESS RESPONSE
-    res.json({ message: "User deleted successfully from the database." });
-
+    res.json({ message: "Deleted successfully" });
   } catch (err) {
-    console.error("DELETE Error:", err.message);
-
-    // Handle Foreign Key Constraints (e.g., user has existing requests/transactions)
-    if (err.message.includes("FOREIGN KEY constraint failed")) {
-      return res.status(400).json({ 
-        error: "Cannot delete user: They have active records or transactions linked to them." 
-      });
-    }
-
-    res.status(500).json({ error: "Internal server error during deletion." });
+    res.status(500).json({ error: err.message });
   }
-});
-
-  async function performDelete() {
-    try {
-      await runQuery("BEGIN TRANSACTION");
-
-      // 1. Delete from all child tables
-      const tables = [
-        "council", "request", "indig_req", "brgyid_req", 
-        "brgy_clearance_req", "business_clearance_req", 
-        "incident_reports", "password_resets"
-      ];
-
-      for (const table of tables) {
-        await runQuery(`DELETE FROM ${table} WHERE userid = ?`, [id]);
-      }
-
-      // 2. Delete the parent user
-      const result = await runQuery("DELETE FROM user WHERE userid = ?", [id]);
-
-      if (result.changes === 0) {
-        await runQuery("ROLLBACK");
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      await runQuery("COMMIT");
-      res.json({ message: "User and all associated records deleted successfully" });
-
-    } catch (err) {
-      await runQuery("ROLLBACK");
-      console.error("Delete Error:", err.message);
-      res.status(500).json({ error: "Failed to delete user: " + err.message });
-    }
-  }
-
-  performDelete();
-});
+}); // <--- This matches the 'app.delete(' at the top
 
 app.put('/api/users/:id', (req, res) => {
   const { id } = req.params;
