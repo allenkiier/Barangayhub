@@ -34,7 +34,7 @@ const UserDashboard = () => {
     );
 
     // ✅ Fetch correct username from backend
-    fetch(`http://localhost:5000/api/user/${storedUser.userid}`)
+    fetch(`/api/user/${storedUser.userid}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch user");
         return res.json();
@@ -47,7 +47,7 @@ const UserDashboard = () => {
         setUsername("User"); // fallback
       });
 
-      fetch(`http://localhost:5000/api/user/${storedUser.userid}`)
+      fetch(`/api/user/${storedUser.userid}`)
       .then((res) => res.json())
       .then((data) => {
         setUsername(data.user_name);

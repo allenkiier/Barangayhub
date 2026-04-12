@@ -36,7 +36,7 @@ const Request = () => {
 
   // ===================== FETCH =====================
   const fetchRequests = () => {
-    fetch("http://localhost:5000/api/requests/all")
+    fetch("/api/requests/all")
       .then(res => res.json())
       .then(data => {
         setRequests(data);

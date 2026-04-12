@@ -68,7 +68,7 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
       setUserid(uid);
       setLoading(true);
 
-      fetch(`http://localhost:5000/api/user/${uid}`)
+      fetch(`/api/user/${uid}`)
         .then((res) => res.json())
         .then((data) => {
           setFormData({
@@ -107,7 +107,7 @@ const BrgyClearanceRequest = ({ open, onClose }) => {
     setSubmitting(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/brgy-clearance/submit", {
+      const res = await fetch("/api/brgy-clearance/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

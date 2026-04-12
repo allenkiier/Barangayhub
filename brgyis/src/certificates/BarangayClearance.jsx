@@ -29,7 +29,7 @@ const BarangayClearance = ({ request, officials }) => {
     
     setLoading(true);
     // Ensure this URL matches your server.js route
-    fetch(`http://localhost:5000/api/clearance/${transactionId}`)
+    fetch(`/api/clearance/${transactionId}`)
       .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();

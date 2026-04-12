@@ -63,7 +63,7 @@ const UserRecords = () => {
   // ✅ FETCH USERS - Stabilized with useCallback to prevent infinite loops and build errors
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/users');
+      const res = await fetch('/api/users');
       if (!res.ok) throw new Error('Failed to fetch users from server');
       const data = await res.json();
       setUsers(data);
@@ -114,7 +114,7 @@ const UserRecords = () => {
       // Use user.id or user.userid depending on your API response mapping
       const targetId = selectedUser.id || selectedUser.userid;
       const res = await fetch(
-        `http://localhost:5000/api/users/${targetId}`,
+        `/api/users/${targetId}`,
         {
           method: 'PUT',
           headers: {
@@ -146,7 +146,7 @@ const UserRecords = () => {
     try {
       const targetId = userToDelete.id || userToDelete.userid;
       const res = await fetch(
-        `http://localhost:5000/api/users/${targetId}`,
+        `/api/users/${targetId}`,
         {
           method: 'DELETE'
         }

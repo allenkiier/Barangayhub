@@ -40,7 +40,7 @@ const OpenMessages = () => {
   // FETCH
   const fetchMessages = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/open-messages");
+      const res = await fetch("/api/open-messages");
       const data = await res.json();
       setMessages(data);
     } catch (err) {
@@ -63,7 +63,7 @@ const OpenMessages = () => {
   const handleDelete = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/open-messages/${toDelete}`,
+        `/api/open-messages/${toDelete}`,
         { method: "DELETE" }
       );
 

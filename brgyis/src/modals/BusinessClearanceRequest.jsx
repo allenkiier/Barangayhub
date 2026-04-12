@@ -67,7 +67,7 @@ const BusinessClearanceRequest = ({ open, onClose, userid }) => {
 
     try {
       const res = await fetch(
-        "http://localhost:5000/api/business-clearance/submit",
+        "/api/business-clearance/submit",
         {
           method: "POST",
           headers: {

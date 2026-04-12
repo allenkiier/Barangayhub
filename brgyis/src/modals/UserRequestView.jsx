@@ -55,7 +55,7 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
     if (open && request) {
       setStatus(request.status);
 
-      fetch("http://localhost:5000/api/council/active-officials")
+      fetch("/api/council/active-officials")
         .then((res) => res.json())
         .then((data) => setOfficials(data))
         .catch((err) => {
@@ -77,7 +77,7 @@ const UserRequestView = ({ open, onClose, request, onRequestUpdated }) => {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/requests/${request.req_id}/status`,
+        `/api/requests/${request.req_id}/status`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

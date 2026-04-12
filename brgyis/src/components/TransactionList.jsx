@@ -71,7 +71,7 @@ const TransactionList = () => {
   const currentUserId = userData?.userid;
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/transactions')
+    fetch('/api/transactions')
       .then(res => res.json())
       .then(data => {
         setServices(data);

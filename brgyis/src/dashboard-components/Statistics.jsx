@@ -60,7 +60,7 @@ const Statistics = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/statistics");
+        const res = await fetch("/api/statistics");
         const data = await res.json();
         setStats(data);
       } catch (err) {
@@ -77,7 +77,7 @@ const Statistics = () => {
   // ✅ ADD THIS FUNCTION
   const openModal = async (type, title) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/users/filter?type=${type}`);
+      const res = await fetch(`/api/users/filter?type=${type}`);
       const data = await res.json();
 
       setModalData(data);

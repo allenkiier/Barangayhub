@@ -12,7 +12,7 @@ const Residentials = () => {
   useEffect(() => {
     const fetchResidentials = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/statistics/residentials");
+        const res = await fetch("/api/statistics/residentials");
         const result = await res.json();
 
         const trend = result.trend || [];

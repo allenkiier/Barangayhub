@@ -35,7 +35,7 @@ const AdminDashboard = () => {
     );
 
     // ✅ Fetch correct username from backend
-    fetch(`http://localhost:5000/api/user/${storedUser.userid}`)
+    fetch(`/api/user/${storedUser.userid}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch user");
         return res.json();
