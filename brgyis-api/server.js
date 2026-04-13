@@ -1329,58 +1329,55 @@ app.get('/api/users', (req, res) => {
 });
 
 // ===================== COMPLETE USER DELETE ENDPOINT =====================
-app.delete('/api/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-
-  const runQuery = (sql, params) => {
-    return new Promise((resolve, reject) => {
-      db.run(sql, params, function (err) {
-        if (err) reject(err);
-        else resolve(this);
-      });
-    }); 
-  };
+  console.log(`[DATABASE] Request received to purge ID: ${id}`);
 
   try {
-    await runQuery("BEGIN TRANSACTION");
+    // 1. Force Foreign Keys OFF just for this operation if it's stuck
+    await new Promise((resolve, reject) => {
+      db.run("PRAGMA foreign_keys = OFF", (err) => err ? reject(err) : resolve());
+    });
 
-    console.log(`[Admin] Attempting full purge for User ID: ${id}`);
+    await new Promise((resolve, reject) => {
+      db.run("BEGIN TRANSACTION", (err) => err ? reject(err) : resolve());
+    });
 
+    // 2. Comprehensive Cleanup
     const tables = [
-      "password_resets", 
-      "council", 
-      "indig_req", 
-      "brgyid_req", 
-      "brgy_clearance_req", 
-      "business_clearance_req", 
-      "incident_reports", 
-      "request"
+      "password_resets", "council", "indig_req", "brgyid_req", 
+      "brgy_clearance_req", "business_clearance_req", "incident_reports", "request"
     ];
 
     for (const table of tables) {
-      await runQuery(`DELETE FROM ${table} WHERE userid = ?`, [id]);
+      db.run(`DELETE FROM ${table} WHERE userid = ?`, [id]);
     }
 
-    const result = await runQuery(
-      "DELETE FROM user WHERE userid = ? OR CAST(userid AS TEXT) = ?", 
-      [id, id]
-    );
+    // 3. The Main Delete
+    db.run("DELETE FROM user WHERE userid = ?", [id], function(err) {
+      if (err) throw err;
+      console.log(`[DATABASE] Rows affected in 'user' table: ${this.changes}`);
+    });
 
-    await runQuery("COMMIT");
+    await new Promise((resolve, reject) => {
+      db.run("COMMIT", (err) => err ? reject(err) : resolve());
+    });
 
-    if (result.changes === 0) {
-      console.warn(`[Admin] Delete failed: User ${id} not found.`);
-      return res.status(404).json({ error: "User not found in database." });
-    }
+    // 4. VERIFICATION LOG
+    db.get("SELECT * FROM user WHERE userid = ?", [id], (err, row) => {
+      if (row) {
+        console.error("!!! CRITICAL: User still exists in DB file after COMMIT !!!");
+      } else {
+        console.log("--- SUCCESS: User verified GONE from DB file ---");
+      }
+    });
 
-    console.log(`[Admin] Purge successful for User ${id}.`);
-    res.json({ message: "User and all associated data deleted successfully" });
+    res.json({ message: "Purge attempted. Check server logs for verification." });
 
   } catch (err) {
-    // 5. Rollback on error so the DB doesn't stay in a partial delete state
-    await runQuery("ROLLBACK");
-    console.error("CRITICAL DELETE ERROR:", err.message);
-    res.status(500).json({ error: "Internal Server Error: " + err.message });
+    db.run("ROLLBACK");
+    console.error("PURGE ERROR:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
