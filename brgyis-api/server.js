@@ -1329,56 +1329,54 @@ app.get('/api/users', (req, res) => {
 });
 
 // ===================== COMPLETE USER DELETE ENDPOINT =====================
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/api/users/:id', authenticateToken, requireAdmin, (req, res) => {
   const { id } = req.params;
-  console.log(`[DATABASE] Request received to purge ID: ${id}`);
 
-  try {
-    // 1. Force Foreign Keys OFF just for this operation if it's stuck
-    await new Promise((resolve, reject) => {
-      db.run("PRAGMA foreign_keys = OFF", (err) => err ? reject(err) : resolve());
-    });
+  // 1. List every table that has a 'userid' column
+  const childTables = [
+    "password_resets",
+    "council",
+    "indig_req",
+    "brgyid_req",
+    "brgy_clearance_req",
+    "business_clearance_req",
+    "incident_reports",
+    "request",
+    "messages" 
+  ];
 
-    await new Promise((resolve, reject) => {
-      db.run("BEGIN TRANSACTION", (err) => err ? reject(err) : resolve());
-    });
+  db.serialize(() => {
+    db.run("BEGIN TRANSACTION");
 
-    // 2. Comprehensive Cleanup
-    const tables = [
-      "password_resets", "council", "indig_req", "brgyid_req", 
-      "brgy_clearance_req", "business_clearance_req", "incident_reports", "request"
-    ];
+    try {
+      childTables.forEach((table) => {
+        db.run(`DELETE FROM ${table} WHERE userid = ?`, [id], (err) => {
+          if (err) console.error(`Error cleaning table ${table}:`, err.message);
+        });
+      });
 
-    for (const table of tables) {
-      db.run(`DELETE FROM ${table} WHERE userid = ?`, [id]);
+      db.run("DELETE FROM user WHERE userid = ?", [id], function (err) {
+        if (err) {
+          console.error("Final delete failed:", err.message);
+          db.run("ROLLBACK");
+          return res.status(500).json({ error: "Could not delete user. Some data might still be linked." });
+        }
+
+        if (this.changes === 0) {
+          db.run("ROLLBACK");
+          return res.status(404).json({ error: "User not found." });
+        }
+
+        db.run("COMMIT");
+        console.log(`Clean Sweep: User ${id} and all related data purged.`);
+        res.json({ message: "User and all associated records cleaned successfully." });
+      });
+
+    } catch (error) {
+      db.run("ROLLBACK");
+      res.status(500).json({ error: "Critical error during cleanup." });
     }
-
-    // 3. The Main Delete
-    db.run("DELETE FROM user WHERE userid = ?", [id], function(err) {
-      if (err) throw err;
-      console.log(`[DATABASE] Rows affected in 'user' table: ${this.changes}`);
-    });
-
-    await new Promise((resolve, reject) => {
-      db.run("COMMIT", (err) => err ? reject(err) : resolve());
-    });
-
-    // 4. VERIFICATION LOG
-    db.get("SELECT * FROM user WHERE userid = ?", [id], (err, row) => {
-      if (row) {
-        console.error("!!! CRITICAL: User still exists in DB file after COMMIT !!!");
-      } else {
-        console.log("--- SUCCESS: User verified GONE from DB file ---");
-      }
-    });
-
-    res.json({ message: "Purge attempted. Check server logs for verification." });
-
-  } catch (err) {
-    db.run("ROLLBACK");
-    console.error("PURGE ERROR:", err.message);
-    res.status(500).json({ error: err.message });
-  }
+  });
 });
 
 app.put('/api/users/:id', (req, res) => {

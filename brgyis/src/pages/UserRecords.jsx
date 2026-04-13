@@ -81,13 +81,16 @@ const UserRecords = () => {
   // ✅ SEARCH FILTER LOGIC
   const filteredUsers = users.filter((user) => {
     const keyword = search.toLowerCase();
+    const userId = String(user.id || user.userid || '');
     return (
       user.name?.toLowerCase().includes(keyword) ||
+      user.user_name?.toLowerCase().includes(keyword) ||
       user.email?.toLowerCase().includes(keyword) ||
+      user.email_ad?.toLowerCase().includes(keyword) ||
       user.sex?.toLowerCase().includes(keyword) ||
       user.civil_status?.toLowerCase().includes(keyword) ||
       user.contact_no?.toLowerCase().includes(keyword) ||
-      String(user.id || user.userid).includes(keyword)
+      userId.includes(keyword)
     );
   });
 
@@ -95,8 +98,8 @@ const UserRecords = () => {
   const handleEdit = (user) => {
     setSelectedUser(user);
     setForm({
-      name: user.name || '',
-      email: user.email || '',
+      name: user.name || user.user_name || '',
+      email: user.email || user.email_ad || '',
       civil_status: user.civil_status || '',
       sex: user.sex || '',
       contact_no: user.contact_no || ''
@@ -108,11 +111,13 @@ const UserRecords = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ✅ UPDATE USER (Requires Token)
+  // ✅ UPDATE USER
   const handleUpdate = async () => {
     try {
       const targetId = selectedUser.id || selectedUser.userid;
       const token = localStorage.getItem('token'); 
+
+      if (!token) throw new Error("Session expired. Please log in again.");
 
       const res = await fetch(`${API_URL}/api/users/${targetId}`, {
         method: 'PUT',
@@ -126,8 +131,12 @@ const UserRecords = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Update failed');
 
+      // Update local state for instant feedback
+      setUsers(prev => prev.map(u => 
+        (u.id || u.userid) === targetId ? { ...u, ...form } : u
+      ));
+
       setOpen(false);
-      fetchUsers();
       showSnack('User updated successfully');
     } catch (err) {
       showSnack(err.message, 'error');
@@ -141,37 +150,39 @@ const UserRecords = () => {
   };
 
   const handleConfirmDelete = async () => {
-  try {
-    // Force targetId to be a string/number that matches your DB userid
-    const targetId = userToDelete.id || userToDelete.userid;
-    const token = localStorage.getItem('token'); 
+    try {
+      const targetId = userToDelete.id || userToDelete.userid;
+      const token = localStorage.getItem('token'); 
 
-    console.log("Attempting to delete ID:", targetId); // DEBUG LOG
+      if (!token) throw new Error("Authorization token missing.");
 
-    const res = await fetch(`${API_URL}/api/users/${targetId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+      const res = await fetch(`${API_URL}/api/users/${targetId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Handle 403 Forbidden specifically
+      if (res.status === 403) {
+        throw new Error('Forbidden: You do not have permission to delete records.');
       }
-    });
 
-    const data = await res.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Deletion failed');
 
-    if (!res.ok) {
-      throw new Error(data.error || 'Deletion failed');
+      // ✅ REMOVE FROM STATE IMMEDIATELY
+      setUsers(prev => prev.filter(u => (u.id || u.userid) !== targetId));
+      
+      showSnack('User and all associated data deleted successfully');
+    } catch (err) {
+      showSnack(err.message, 'error');
+    } finally {
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
     }
-
-    setUsers(prev => prev.filter(u => (u.id || u.userid) !== targetId));
-    
-    showSnack('User deleted successfully');
-  } catch (err) {
-    showSnack(err.message, 'error');
-  } finally {
-    setDeleteDialogOpen(false);
-    setUserToDelete(null);
-  }
-};
+  };
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -185,24 +196,24 @@ const UserRecords = () => {
         <Paper sx={{ p: 2, borderRadius: 3, boxShadow: 3 }}>
           <TextField
             fullWidth
-            label="Search users..."
+            label="Search users by name, email, or ID..."
             variant="outlined"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             sx={{ mb: 2 }}
           />
 
-          <TableContainer sx={{ maxHeight: 500 }}>
+          <TableContainer sx={{ maxHeight: 600 }}>
             <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Sex</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Civil Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Contact</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Sex</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Contact</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -239,9 +250,9 @@ const UserRecords = () => {
         </Paper>
       </Box>
 
-      {/* EDIT MODAL */}
+      {/* EDIT DIALOG */}
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Edit User Details</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Update Resident Information</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -261,31 +272,31 @@ const UserRecords = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleUpdate}>Save Changes</Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpen(false)} variant="outlined">Cancel</Button>
+          <Button variant="contained" onClick={handleUpdate} color="primary">Update Resident</Button>
         </DialogActions>
       </Dialog>
 
-      {/* DELETE CONFIRMATION */}
+      {/* DELETE DIALOG */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogTitle sx={{ color: 'error.main', fontWeight: 'bold' }}>Permanent Deletion</DialogTitle>
         <DialogContent>
           <Typography>
             Are you sure you want to delete <b>{userToDelete?.name || userToDelete?.user_name}</b>? 
-            This action cannot be undone.
+            This will also permanently remove all their <b>requests, clearances, and reports</b> from the database.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={handleConfirmDelete}>Confirm Delete</Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined">Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>Confirm Full Purge</Button>
         </DialogActions>
       </Dialog>
 
       {/* NOTIFICATIONS */}
       <Snackbar
         open={snack.open}
-        autoHideDuration={4000}
+        autoHideDuration={5000}
         onClose={handleCloseSnack}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
