@@ -11,10 +11,12 @@ import {
   Snackbar,
   Alert
 } from "@mui/material";
+import { InputAdornment, IconButton } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 import WalkIns from "../components/WalkIns";
 import ForgotPass from "../modals/ForgotPass";
-import ResetPass from "../modals/ResetPass"; // Added ResetPass import
+import ResetPass from "../modals/ResetPass"; 
 
 export default function UserLogin() {
   const navigate = useNavigate();
@@ -24,11 +26,14 @@ export default function UserLogin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  
 
   // Snackbar
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [alertMsg, setAlertMsg] = useState("");
   const [severity, setSeverity] = useState("error");
+
+  const [showPassword, setShowPassword] = useState(false);
 
   // Forgot Password Modal State
   const [openForgot, setOpenForgot] = useState(false);
@@ -143,13 +148,27 @@ export default function UserLogin() {
 
               <TextField
                 label="Password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 fullWidth
                 margin="normal"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 variant="standard"
                 sx={{ input: { color: "white" }, label: { color: "rgba(255,255,255,0.7)" } }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                        sx={{ color: "white" }}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
               />
 
               <FormControlLabel
