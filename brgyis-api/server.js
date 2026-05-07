@@ -287,6 +287,12 @@ app.post("/api/login", (req, res) => {
         return res.status(401).json({ error: "Invalid credentials." });
       }
 
+      if (user.is_approved === 0) {
+          return res.status(403).json({ 
+          error: "Your account is still pending approval from the Barangay Office." 
+        });
+      }
+
       bcrypt.compare(password, user.passwordHash, (cmpErr, match) => {
         if (cmpErr) return res.status(500).json({ error: cmpErr.message });
 
@@ -320,49 +326,52 @@ app.post("/api/login", (req, res) => {
 });
 
 // ===================== SIGNUP =====================
-app.post('/api/signup', (req, res) => {
+app.post('/api/signup', async (req, res) => {
   const { user_name, email_ad, password, isAdmin } = req.body;
 
+  // 1. Basic Validation
   if (!user_name || !email_ad || !password) {
-    return res.status(400).json({ error: 'Name, email, and password are required.' });
+    return res.status(400).json({ error: "All fields are required" });
   }
 
-  db.get(
-    'SELECT 1 FROM user WHERE email_ad = ?',
-    [email_ad],
-    (err, row) => {
-      if (err) return res.status(500).json({ error: 'Database error.' });
-      if (row) return res.status(400).json({ error: 'Email already registered.' });
+  try {
+    // 2. Check if email already exists
+    db.get("SELECT email_ad FROM users WHERE email_ad = ?", [email_ad], async (err, row) => {
+      if (err) return res.status(500).json({ error: "Database error" });
+      if (row) return res.status(400).json({ error: "Email already registered" });
 
-      bcrypt.hash(password, 10, (hashErr, hashedPassword) => {
-        if (hashErr) return res.status(500).json({ error: 'Password hashing failed.' });
+      // 3. Hash the password for security
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-        let admin_status = 'none';
-        let isAdminValue = 0;
+      // 4. Insert user as PENDING (is_approved = 0)
+      const sql = `
+        INSERT INTO users (user_name, email_ad, password, isAdmin, is_approved) 
+        VALUES (?, ?, ?, ?, 0)
+      `;
+      
+      const values = [
+        user_name, 
+        email_ad, 
+        hashedPassword, 
+        isAdmin ? 1 : 0
+      ];
 
-        if (isAdmin) {
-          admin_status = 'pending';
+      db.run(sql, values, function(err) {
+        if (err) {
+          return res.status(500).json({ error: "Failed to create account" });
         }
-
-        db.run(
-          `INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, admin_status)
-           VALUES (?, ?, ?, ?, ?)`,
-          [user_name, email_ad, hashedPassword, isAdminValue, admin_status],
-          function (insertErr) {
-            if (insertErr) return res.status(500).json({ error: insertErr.message });
-
-            res.status(201).json({
-              message: isAdmin
-                ? 'Admin request submitted for approval'
-                : 'User created successfully',
-              userid: this.lastID,
-              admin_status
-            });
-          }
-        );
+        
+        // 5. Success response
+        res.status(201).json({ 
+          message: isAdmin 
+            ? "Admin request submitted. Please wait for official approval." 
+            : "Signup successful! Please wait for the Barangay Admin to approve your account." 
+        });
       });
-    }
-  );
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Server error during signup" });
+  }
 });
 
 // ===================== ADMIN REQUESTS =====================

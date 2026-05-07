@@ -2,6 +2,7 @@ import React from 'react'
 import AdminRequest from '../components/AdminRequest'
 import AdminSideBar from '../components/AdminSideBar'
 import { Box } from '@mui/material'
+import UserSignRequest from '../components/UserSignRequest'
 
 const Admission = () => {
   return (
@@ -16,6 +17,7 @@ const Admission = () => {
             </Box>
           </div>
           <AdminRequest />
+          <UserSignRequest/>
         </Box>
     </div>
   )
