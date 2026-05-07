@@ -41,6 +41,7 @@ db.serialize(() => {
       user_name TEXT NOT NULL,
       passwordHash TEXT NOT NULL,
       isAdmin INTEGER NOT NULL DEFAULT 0,
+      is_approved INTEGER DEFAULT 0,
       email_ad TEXT UNIQUE NOT NULL,
 
       civil_status TEXT,
