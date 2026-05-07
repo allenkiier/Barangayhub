@@ -13,14 +13,15 @@ import {
   DialogActions,
   Button,
   Snackbar,
-  Alert
+  Alert,
+  Chip
 } from "@mui/material";
 
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
+import ShieldIcon from "@mui/icons-material/Shield";
 
-// Using the Railway variable or falling back to local for development
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const AdminRequest = () => {
@@ -83,7 +84,6 @@ const AdminRequest = () => {
     try {
       const token = localStorage.getItem("token");
 
-      // Construct the absolute URL correctly
       const endpoint =
         actionType === "approve"
           ? `${API_URL}/api/admin/approve/${selectedId}`
@@ -98,12 +98,12 @@ const AdminRequest = () => {
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || `Failed to ${actionType} request`);
+        const data = await res.json();
+        throw new Error(data.error || `Failed to ${actionType} request`);
       }
 
       showSnack(`Successfully ${actionType}d the request!`, "success");
-      await fetchRequests(); // Refresh the list
+      await fetchRequests(); 
     } catch (err) {
       console.error(`${actionType} error:`, err.message);
       showSnack(err.message, "error");
@@ -150,15 +150,31 @@ const AdminRequest = () => {
               >
                 {/* User Info Section */}
                 <Box display="flex" alignItems="center" gap={2}>
-                  <Avatar sx={{ bgcolor: "#060745" }}>
-                    <PersonIcon />
+                  <Avatar sx={{ bgcolor: req.isAdmin ? "#f57c00" : "#060745" }}>
+                    {req.isAdmin ? <ShieldIcon /> : <PersonIcon />}
                   </Avatar>
                   <Box>
-                    <Typography fontWeight="bold" variant="subtitle1">
-                      {req.user_name || req.name || "Unknown User"}
-                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography fontWeight="bold" variant="subtitle1">
+                        {req.user_name || "Unknown User"}
+                        </Typography>
+                        
+                        {/* Dynamic Badge based on Role */}
+                        <Chip 
+                            label={req.isAdmin ? "ADMIN REQUEST" : "RESIDENT"} 
+                            size="small"
+                            sx={{ 
+                                height: '20px', 
+                                fontSize: '0.65rem', 
+                                fontWeight: 'bold',
+                                bgcolor: req.isAdmin ? "#fff3e0" : "#e8f5e9",
+                                color: req.isAdmin ? "#e65100" : "#2e7d32",
+                                border: `1px solid ${req.isAdmin ? "#ffb74d" : "#81c784"}`
+                            }} 
+                        />
+                    </Stack>
                     <Typography variant="body2" color="text.secondary">
-                      {req.email_ad || req.email || "No email provided"}
+                      {req.email_ad || "No email provided"}
                     </Typography>
                   </Box>
                 </Box>
@@ -168,13 +184,14 @@ const AdminRequest = () => {
                   <IconButton
                     color="success"
                     onClick={() => handleOpenConfirm(req.userid, "approve")}
-                    sx={{ mr: 1 }}
+                    sx={{ mr: 1, border: '1px solid #e0e0e0' }}
                   >
                     <CheckIcon />
                   </IconButton>
                   <IconButton
                     color="error"
                     onClick={() => handleOpenConfirm(req.userid, "reject")}
+                    sx={{ border: '1px solid #e0e0e0' }}
                   >
                     <CloseIcon />
                   </IconButton>
@@ -196,8 +213,7 @@ const AdminRequest = () => {
         </DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to <b>{actionType}</b> this request? 
-            This user will be notified of the decision.
+            Are you sure you want to <b>{actionType}</b> this request for account access?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ pb: 2, pr: 2 }}>

@@ -381,7 +381,7 @@ app.get('/api/admin/requests', authenticateToken, requireAdmin, (req, res) => {
   db.all(
     `SELECT userid, user_name, email_ad, admin_status
      FROM user
-     WHERE admin_status = 'pending'`,
+     WHERE is_approved = 0 OR admin_status = 'pending'`,
     [],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -394,9 +394,16 @@ app.post('/api/admin/approve/:id', authenticateToken, requireAdmin, (req, res) =
   if (req.user.isAdmin !== 1 ) return res.status(403).json({ error: "Unauthorized" });
   
   const userId = req.params.id;
-  db.run(`UPDATE user SET isAdmin = 1, admin_status = 'approved' WHERE userid = ?`, [userId], function (err) {
+  const sql = `
+    UPDATE user 
+    SET is_approved = 1, 
+        isAdmin = CASE WHEN admin_status = 'pending' THEN 1 ELSE isAdmin END,
+        admin_status = 'approved' 
+    WHERE userid = ?
+  `;
+  db.run(sql, [userId], function (err) {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'User approved as admin' });
+    res.json({ message: 'Request approved successfully' });
   });
 });
 
@@ -407,15 +414,10 @@ app.post('/api/admin/reject/:id', authenticateToken, requireAdmin, (req, res) =>
 
   const userId = req.params.id;
 
-  db.run(
-    `UPDATE user SET admin_status = 'rejected' WHERE userid = ?`,
-    [userId],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-
-      res.json({ message: 'Admin request rejected' });
-    }
-  );
+  db.run(`DELETE FROM user WHERE userid = ? AND is_approved = 0`, [userId], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Request rejected and account removed.' });
+  });
 });
 
 // ===================== GET USER =====================
