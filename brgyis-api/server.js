@@ -66,6 +66,15 @@ db.serialize(() => {
     )
   `);
 
+  db.run(`ALTER TABLE user ADD COLUMN admin_status TEXT DEFAULT 'none'`, (err) => {
+    if (err) {
+      // This will log if the column already exists, which is normal after the first run
+      console.log("Note: admin_status column check complete (it may already exist).");
+    } else {
+      console.log("Successfully added admin_status column to existing table.");
+    }
+  });
+
   db.run(`
     CREATE TABLE IF NOT EXISTS council (
       council_id INTEGER PRIMARY KEY AUTOINCREMENT,
