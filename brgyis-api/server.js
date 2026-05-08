@@ -290,13 +290,55 @@ const requireAdmin = (req, res, next) => {
 
 
 // ===================== LOGIN =====================
-app.post('/api/login', (req, res) => {
-    const { email_ad, password } = req.body;
-    // Check main user table
-    db.get("SELECT * FROM user WHERE email_ad = ? AND passwordHash = ?", [email_ad, password], (err, row) => {
-        if (err || !row) return res.status(401).json({ error: "Invalid credentials or pending approval." });
-        res.json({ message: "Success", user: row });
-    });
+app.post("/api/login", (req, res) => {
+  const { email_ad, password, isAdmin } = req.body;
+
+  db.get(
+    "SELECT * FROM user WHERE email_ad = ?",
+    [email_ad],
+    (err, user) => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials." });
+      }
+
+      if (user.is_approved === 0) {
+          return res.status(403).json({ 
+          error: "Your account is still pending approval from the Barangay Office." 
+        });
+      }
+
+      bcrypt.compare(password, user.passwordHash, (cmpErr, match) => {
+        if (cmpErr) return res.status(500).json({ error: cmpErr.message });
+
+        if (!match) {
+          return res.status(401).json({ error: "Invalid credentials." });
+        }
+
+        if (isAdmin && user.isAdmin !== 1) {
+          return res.status(403).json({ error: "Not an admin." });
+        }
+
+        if (!isAdmin && user.isAdmin === 1) {
+          return res.status(403).json({ error: "Login as admin." });
+        }
+
+        const token = jwt.sign(
+          { userid: user.userid, isAdmin: user.isAdmin },
+          SECRET_KEY,
+          { expiresIn: "2h" }
+        );
+
+        res.json({
+          token: token,
+          userid: user.userid,
+          isAdmin: user.isAdmin,
+          token,
+        });
+      });
+    }
+  );
 });
 
 // ===================== SIGNUP =====================
@@ -368,7 +410,7 @@ app.get('/api/admin/requests', authenticateToken, requireAdmin, (req, res) => {
   );
 });
 
-// Reject a Resident Request
+
 app.post('/api/reject-resident/:id', (req, res) => {
     const id = req.params.id;
     // We simply delete from the staging table
