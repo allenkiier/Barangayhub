@@ -1,20 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  Container,
-  Box,
-  Paper,
-  Typography,
-  Avatar,
-  IconButton,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Snackbar,
-  Alert,
-  Chip
+  Container, Box, Paper, Typography, Avatar, IconButton, Stack,
+  Dialog, DialogTitle, DialogContent, DialogActions, Button,
+  Snackbar, Alert, Chip
 } from "@mui/material";
 
 import CheckIcon from "@mui/icons-material/Check";
@@ -27,172 +15,137 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const AdminRequest = () => {
   const [requests, setRequests] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [actionType, setActionType] = useState(""); // approve or reject
-  const [selectedId, setSelectedId] = useState(null);
+  const [actionType, setActionType] = useState("");
+  const [selectedRequest, setSelectedRequest] = useState(null); // Store the whole object
 
-  const [snack, setSnack] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [snack, setSnack] = useState({ open: false, message: "", severity: "success" });
 
-  // ================= NOTIFICATION HELPER =================
   const showSnack = useCallback((message, severity = "success") => {
     setSnack({ open: true, message, severity });
   }, []);
 
-  const handleCloseSnack = () => {
-    setSnack({ ...snack, open: false });
-  };
+  const handleCloseSnack = () => setSnack({ ...snack, open: false });
 
-  // ================= FETCH DATA =================
+  // ================= FETCH DATA (Both Tables) =================
   const fetchRequests = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      
-      const res = await fetch(`${API_URL}/api/admin/requests`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // Fetch both types of requests in parallel
+      const [resAdmins, resResidents] = await Promise.all([
+        fetch(`${API_URL}/api/pending-admins`),
+        fetch(`${API_URL}/api/pending-residents`)
+      ]);
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Failed to fetch requests");
-      }
+      const admins = await resAdmins.json();
+      const residents = await resResidents.json();
 
-      const data = await res.json();
-      setRequests(data);
+      // Normalize data so the UI can render them the same way
+      const normalizedAdmins = admins.map(a => ({
+        id: a.admin_req_id,
+        user_name: a.user_name,
+        email_ad: a.email_ad,
+        isAdmin: true // Flag for the UI
+      }));
+
+      const normalizedResidents = residents.map(r => ({
+        id: r.request_id,
+        user_name: r.user_name,
+        email_ad: r.email_ad,
+        isAdmin: false
+      }));
+
+      setRequests([...normalizedAdmins, ...normalizedResidents]);
     } catch (err) {
-      console.error("Fetch error:", err.message);
       showSnack("Error loading requests: " + err.message, "error");
     }
   }, [showSnack]);
 
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+  useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
   // ================= ACTIONS =================
-  const handleOpenConfirm = (id, type) => {
-    setSelectedId(id);
+  const handleOpenConfirm = (request, type) => {
+    setSelectedRequest(request);
     setActionType(type);
     setConfirmOpen(true);
   };
 
   const handleConfirm = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const { id, isAdmin } = selectedRequest;
+      let endpoint = "";
 
-      const endpoint =
-        actionType === "approve"
-          ? `${API_URL}/api/admin/approve/${selectedId}`
-          : `${API_URL}/api/admin/reject/${selectedId}`;
+      // Construct endpoint based on Type and Role
+      if (actionType === "approve") {
+        endpoint = isAdmin 
+          ? `${API_URL}/api/approve-admin/${id}` 
+          : `${API_URL}/api/approve-resident/${id}`;
+      } else {
+        endpoint = isAdmin 
+          ? `${API_URL}/api/reject-admin/${id}` 
+          : `${API_URL}/api/reject-resident/${id}`;
+      }
 
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || `Failed to ${actionType} request`);
-      }
+      if (!res.ok) throw new Error(`Failed to ${actionType} request`);
 
       showSnack(`Successfully ${actionType}d the request!`, "success");
       await fetchRequests(); 
     } catch (err) {
-      console.error(`${actionType} error:`, err.message);
       showSnack(err.message, "error");
     } finally {
       setConfirmOpen(false);
-      setSelectedId(null);
-      setActionType("");
+      setSelectedRequest(null);
     }
   };
 
-  // ================= UI RENDER =================
   return (
     <Container maxWidth="md">
       <Box mt={4} mb={4}>
-        <Typography 
-          variant="h4" 
-          gutterBottom 
-          sx={{ color: "#060745", fontWeight: "bold", mb: 4 }}
-        >
+        <Typography variant="h4" gutterBottom sx={{ color: "#060745", fontWeight: "bold", mb: 4 }}>
           Admission Requests
         </Typography>
 
         <Stack spacing={2}>
           {requests.length === 0 ? (
             <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
-              <Typography color="text.secondary">
-                No pending admission requests at the moment.
-              </Typography>
+              <Typography color="text.secondary">No pending requests at the moment.</Typography>
             </Paper>
           ) : (
             requests.map((req) => (
               <Paper
-                key={req.userid}
+                key={`${req.isAdmin ? 'adm' : 'res'}-${req.id}`}
                 elevation={2}
-                sx={{
-                  p: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  borderRadius: 2,
-                  transition: "0.3s",
-                  "&:hover": { boxShadow: 6 }
-                }}
+                sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: 2 }}
               >
-                {/* User Info Section */}
                 <Box display="flex" alignItems="center" gap={2}>
                   <Avatar sx={{ bgcolor: req.isAdmin ? "#f57c00" : "#060745" }}>
                     {req.isAdmin ? <ShieldIcon /> : <PersonIcon />}
                   </Avatar>
                   <Box>
                     <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography fontWeight="bold" variant="subtitle1">
-                        {req.user_name || "Unknown User"}
-                        </Typography>
-                        
-                        {/* Dynamic Badge based on Role */}
-                        <Chip 
-                            label={req.isAdmin ? "ADMIN REQUEST" : "RESIDENT"} 
-                            size="small"
-                            sx={{ 
-                                height: '20px', 
-                                fontSize: '0.65rem', 
-                                fontWeight: 'bold',
-                                bgcolor: req.isAdmin ? "#fff3e0" : "#e8f5e9",
-                                color: req.isAdmin ? "#e65100" : "#2e7d32",
-                                border: `1px solid ${req.isAdmin ? "#ffb74d" : "#81c784"}`
-                            }} 
-                        />
+                      <Typography fontWeight="bold" variant="subtitle1">{req.user_name}</Typography>
+                      <Chip 
+                        label={req.isAdmin ? "ADMIN ACCESS" : "RESIDENT"} 
+                        size="small"
+                        sx={{ 
+                          height: '20px', fontSize: '0.65rem', fontWeight: 'bold',
+                          bgcolor: req.isAdmin ? "#fff3e0" : "#e8f5e9",
+                          color: req.isAdmin ? "#e65100" : "#2e7d32"
+                        }} 
+                      />
                     </Stack>
-                    <Typography variant="body2" color="text.secondary">
-                      {req.email_ad || "No email provided"}
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary">{req.email_ad}</Typography>
                   </Box>
                 </Box>
 
-                {/* Action Buttons Section */}
                 <Box>
-                  <IconButton
-                    color="success"
-                    onClick={() => handleOpenConfirm(req.userid, "approve")}
-                    sx={{ mr: 1, border: '1px solid #e0e0e0' }}
-                  >
+                  <IconButton color="success" onClick={() => handleOpenConfirm(req, "approve")} sx={{ mr: 1, border: '1px solid #e0e0e0' }}>
                     <CheckIcon />
                   </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => handleOpenConfirm(req.userid, "reject")}
-                    sx={{ border: '1px solid #e0e0e0' }}
-                  >
+                  <IconButton color="error" onClick={() => handleOpenConfirm(req, "reject")} sx={{ border: '1px solid #e0e0e0' }}>
                     <CloseIcon />
                   </IconButton>
                 </Box>
@@ -202,50 +155,22 @@ const AdminRequest = () => {
         </Stack>
       </Box>
 
-      {/* ACTION CONFIRMATION MODAL */}
-      <Dialog 
-        open={confirmOpen} 
-        onClose={() => setConfirmOpen(false)}
-        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
-      >
-        <DialogTitle sx={{ fontWeight: "bold" }}>
-          {actionType === "approve" ? "Approve Admission" : "Reject Admission"}
-        </DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to <b>{actionType}</b> this request for account access?
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ pb: 2, pr: 2 }}>
-          <Button onClick={() => setConfirmOpen(false)} color="inherit">
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color={actionType === "approve" ? "success" : "error"}
-            onClick={handleConfirm}
-            sx={{ px: 3 }}
-          >
-            Confirm {actionType}
-          </Button>
-        </DialogActions>
+      {/* MODAL & SNACKBAR (Keep your original code for these) */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+         <DialogTitle>{actionType === "approve" ? "Confirm Approval" : "Confirm Rejection"}</DialogTitle>
+         <DialogContent>
+            Are you sure you want to {actionType} <b>{selectedRequest?.user_name}</b>?
+         </DialogContent>
+         <DialogActions>
+            <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button variant="contained" color={actionType === "approve" ? "success" : "error"} onClick={handleConfirm}>
+               Confirm
+            </Button>
+         </DialogActions>
       </Dialog>
 
-      {/* NOTIFICATIONS */}
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnack}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert 
-          onClose={handleCloseSnack} 
-          severity={snack.severity} 
-          variant="filled" 
-          sx={{ width: "100%" }}
-        >
-          {snack.message}
-        </Alert>
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={handleCloseSnack}>
+        <Alert severity={snack.severity} variant="filled">{snack.message}</Alert>
       </Snackbar>
     </Container>
   );

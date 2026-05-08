@@ -17,7 +17,6 @@ const Admission = () => {
             </Box>
           </div>
           <AdminRequest />
-          <UserSignRequest/>
         </Box>
     </div>
   )

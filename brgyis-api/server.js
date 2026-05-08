@@ -31,49 +31,51 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 db.run(`PRAGMA foreign_keys = ON`);
 
 
-
 // ===================== TABLES =====================
 db.serialize(() => {
 
   db.run(`
-    CREATE TABLE IF NOT EXISTS user (
-      userid INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_name TEXT NOT NULL,
-      passwordHash TEXT NOT NULL,
-      isAdmin INTEGER NOT NULL DEFAULT 0,
-      is_approved INTEGER DEFAULT 0,
-      email_ad TEXT UNIQUE NOT NULL,
+        CREATE TABLE IF NOT EXISTS user (
+            userid INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_name TEXT NOT NULL,
+            passwordHash TEXT NOT NULL,
+            isAdmin INTEGER NOT NULL DEFAULT 0,
+            is_approved INTEGER DEFAULT 0,
+            email_ad TEXT UNIQUE NOT NULL,
+            civil_status TEXT,
+            sex TEXT,
+            birthdate TEXT,
+            birthplace TEXT,
+            contact_no TEXT,
+            isPWD INTEGER DEFAULT 0,
+            isSenior INTEGER DEFAULT 0,
+            barangay_id TEXT,
+            national_id TEXT,
+            house_no TEXT,
+            street TEXT,
+            barangay TEXT,
+            municipality TEXT,
+            zip_code TEXT,
+            province TEXT,
+            residence_start_date TEXT,
+            admin_status TEXT DEFAULT 'none' 
+        )
+    `);
+    db.run(`CREATE TABLE IF NOT EXISTS registration_req (
+        request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_name TEXT NOT NULL,
+        email_ad TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        request_date DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-      civil_status TEXT,
-      sex TEXT,
-      birthdate TEXT,
-      birthplace TEXT,
-      contact_no TEXT,
-      isPWD INTEGER DEFAULT 0,
-      isSenior INTEGER DEFAULT 0,
-      barangay_id TEXT,
-      national_id TEXT,
-
-      house_no TEXT,
-      street TEXT,
-      barangay TEXT,
-      municipality TEXT,
-      zip_code TEXT,
-      province TEXT,
-
-      residence_start_date TEXT,
-      admin_status TEXT DEFAULT 'none'
-    )
-  `);
-
-  db.run(`ALTER TABLE user ADD COLUMN admin_status TEXT DEFAULT 'none'`, (err) => {
-    if (err) {
-      // This will log if the column already exists, which is normal after the first run
-      console.log("Note: admin_status column check complete (it may already exist).");
-    } else {
-      console.log("Successfully added admin_status column to existing table.");
-    }
-  });
+    db.run(`CREATE TABLE IF NOT EXISTS admin_req (
+        admin_req_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_name TEXT NOT NULL,
+        email_ad TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        request_date DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS council (
@@ -248,7 +250,11 @@ db.serialize(() => {
         type TEXT NOT NULL
       );
     `);
+
+    
   });
+
+  
 
 
 // ===================== HELPERS =====================
@@ -284,104 +290,67 @@ const requireAdmin = (req, res, next) => {
 
 
 // ===================== LOGIN =====================
-app.post("/api/login", (req, res) => {
-  const { email_ad, password, isAdmin } = req.body;
-
-  db.get(
-    "SELECT * FROM user WHERE email_ad = ?",
-    [email_ad],
-    (err, user) => {
-      if (err) return res.status(500).json({ error: err.message });
-
-      if (!user) {
-        return res.status(401).json({ error: "Invalid credentials." });
-      }
-
-      if (user.is_approved === 0) {
-          return res.status(403).json({ 
-          error: "Your account is still pending approval from the Barangay Office." 
-        });
-      }
-
-      bcrypt.compare(password, user.passwordHash, (cmpErr, match) => {
-        if (cmpErr) return res.status(500).json({ error: cmpErr.message });
-
-        if (!match) {
-          return res.status(401).json({ error: "Invalid credentials." });
-        }
-
-        if (isAdmin && user.isAdmin !== 1) {
-          return res.status(403).json({ error: "Not an admin." });
-        }
-
-        if (!isAdmin && user.isAdmin === 1) {
-          return res.status(403).json({ error: "Login as admin." });
-        }
-
-        const token = jwt.sign(
-          { userid: user.userid, isAdmin: user.isAdmin },
-          SECRET_KEY,
-          { expiresIn: "2h" }
-        );
-
-        res.json({
-          token: token,
-          userid: user.userid,
-          isAdmin: user.isAdmin,
-          token,
-        });
-      });
-    }
-  );
+app.post('/api/login', (req, res) => {
+    const { email_ad, password } = req.body;
+    // Check main user table
+    db.get("SELECT * FROM user WHERE email_ad = ? AND passwordHash = ?", [email_ad, password], (err, row) => {
+        if (err || !row) return res.status(401).json({ error: "Invalid credentials or pending approval." });
+        res.json({ message: "Success", user: row });
+    });
 });
 
 // ===================== SIGNUP =====================
-app.post('/api/signup', async (req, res) => {
-  const { user_name, email_ad, password, isAdmin } = req.body;
-
-  // 1. Basic Validation
-  if (!user_name || !email_ad || !password) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-
-  try {
-    // 2. Check if email already exists
-    db.get("SELECT email_ad FROM users WHERE email_ad = ?", [email_ad], async (err, row) => {
-      if (err) return res.status(500).json({ error: "Database error" });
-      if (row) return res.status(400).json({ error: "Email already registered" });
-
-      // 3. Hash the password for security
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // 4. Insert user as PENDING (is_approved = 0)
-      const sql = `
-        INSERT INTO users (user_name, email_ad, password, isAdmin, is_approved) 
-        VALUES (?, ?, ?, ?, 0)
-      `;
-      
-      const values = [
-        user_name, 
-        email_ad, 
-        hashedPassword, 
-        isAdmin ? 1 : 0
-      ];
-
-      db.run(sql, values, function(err) {
+app.post('/api/signup', (req, res) => {
+    const { user_name, email_ad, password, isAdmin } = req.body;
+    const tableName = isAdmin ? "admin_req" : "registration_req";
+    
+    const sql = `INSERT INTO ${tableName} (user_name, email_ad, password) VALUES (?, ?, ?)`;
+    
+    db.run(sql, [user_name, email_ad, password], function(err) {
         if (err) {
-          return res.status(500).json({ error: "Failed to create account" });
+            if (err.message.includes("UNIQUE")) return res.status(400).json({ error: "Email is already pending." });
+            return res.status(500).json({ error: "Database error." });
         }
-        
-        // 5. Success response
-        res.status(201).json({ 
-          message: isAdmin 
-            ? "Admin request submitted. Please wait for official approval." 
-            : "Signup successful! Please wait for the Barangay Admin to approve your account." 
-        });
-      });
+        res.status(201).json({ message: "Request submitted for approval!" });
     });
-  } catch (error) {
-    res.status(500).json({ error: "Server error during signup" });
-  }
+});
+
+app.post('/api/approve-resident/:id', (req, res) => {
+    const id = req.params.id;
+    db.serialize(() => {
+        db.get("SELECT * FROM registration_req WHERE request_id = ?", [id], (err, row) => {
+            if (err || !row) return res.status(404).json({ error: "Request not found" });
+
+            // Moving into your main 'user' table with your PRAGMA attributes
+            const sql = `INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved, admin_status) 
+                         VALUES (?, ?, ?, 0, 1, 'none')`;
+            
+            db.run(sql, [row.user_name, row.email_ad, row.password], (insertErr) => {
+                if (insertErr) return res.status(500).json({ error: "Migration failed" });
+                db.run("DELETE FROM registration_req WHERE request_id = ?", [id]);
+                res.json({ message: "Resident approved and account created!" });
+            });
+        });
+    });
+});
+
+app.post('/api/approve-admin/:id', (req, res) => {
+    const id = req.params.id;
+    db.serialize(() => {
+        db.get("SELECT * FROM admin_req WHERE admin_req_id = ?", [id], (err, row) => {
+            if (err || !row) return res.status(404).json({ error: "Request not found" });
+
+            // Moving into 'user' table as an Admin
+            const sql = `INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved, admin_status) 
+                         VALUES (?, ?, ?, 1, 1, 'active')`;
+            
+            db.run(sql, [row.user_name, row.email_ad, row.password], (insertErr) => {
+                if (insertErr) return res.status(500).json({ error: "Admin promotion failed" });
+                db.run("DELETE FROM admin_req WHERE admin_req_id = ?", [id]);
+                res.json({ message: "Admin approved successfully!" });
+            });
+        });
+    });
 });
 
 // ===================== ADMIN REQUESTS =====================
@@ -399,34 +368,25 @@ app.get('/api/admin/requests', authenticateToken, requireAdmin, (req, res) => {
   );
 });
 
-app.post('/api/admin/approve/:id', authenticateToken, requireAdmin, (req, res) => {
-  if (req.user.isAdmin !== 1 ) return res.status(403).json({ error: "Unauthorized" });
-  
-  const userId = req.params.id;
-  const sql = `
-    UPDATE user 
-    SET is_approved = 1, 
-        isAdmin = CASE WHEN admin_status = 'pending' THEN 1 ELSE isAdmin END,
-        admin_status = 'approved' 
-    WHERE userid = ?
-  `;
-  db.run(sql, [userId], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Request approved successfully' });
-  });
+// Reject a Resident Request
+app.post('/api/reject-resident/:id', (req, res) => {
+    const id = req.params.id;
+    // We simply delete from the staging table
+    db.run(`DELETE FROM registration_req WHERE request_id = ?`, [id], function(err) {
+        if (err) return res.status(500).json({ error: "Could not remove request." });
+        if (this.changes === 0) return res.status(404).json({ error: "Request not found." });
+        res.json({ message: 'Resident request rejected and removed.' });
+    });
 });
 
-app.post('/api/admin/reject/:id', authenticateToken, requireAdmin, (req, res) => {
-  if (req.user.isAdmin !== 1 ) {
-    return res.status(403).json({ error: "Unauthorized" });
-  }
-
-  const userId = req.params.id;
-
-  db.run(`DELETE FROM user WHERE userid = ? AND is_approved = 0`, [userId], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Request rejected and account removed.' });
-  });
+// Reject an Admin Request
+app.post('/api/reject-admin/:id', (req, res) => {
+    const id = req.params.id;
+    db.run(`DELETE FROM admin_req WHERE admin_req_id = ?`, [id], function(err) {
+        if (err) return res.status(500).json({ error: "Could not remove request." });
+        if (this.changes === 0) return res.status(404).json({ error: "Request not found." });
+        res.json({ message: 'Admin request rejected and removed.' });
+    });
 });
 
 // ===================== GET USER =====================

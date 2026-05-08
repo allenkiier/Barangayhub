@@ -1,17 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  FormControlLabel,
-  Checkbox,
-  Stack,
-  Snackbar,
-  Alert
+  Box, Typography, TextField, Button, FormControlLabel,
+  Checkbox, Stack, Snackbar, Alert, InputAdornment, IconButton
 } from "@mui/material";
-import { InputAdornment, IconButton } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 import WalkIns from "../components/WalkIns";
@@ -26,19 +18,13 @@ export default function UserLogin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-  
 
-  // Snackbar
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [alertMsg, setAlertMsg] = useState("");
   const [severity, setSeverity] = useState("error");
-
   const [showPassword, setShowPassword] = useState(false);
 
-  // Forgot Password Modal State
   const [openForgot, setOpenForgot] = useState(false);
-
-  // Reset Password Modal State (The "Switching" state)
   const [openReset, setOpenReset] = useState(false);
   const [resetToken, setResetToken] = useState("");
 
@@ -53,11 +39,10 @@ export default function UserLogin() {
     setOpenSnackbar(true);
   };
 
-  // Logic to handle the transition from Forgot Modal to Reset Modal
   const handleVerificationSuccess = (token) => {
-    setResetToken(token); // Store the token from the approved request
-    setOpenForgot(false); // Close the status check modal
-    setOpenReset(true);   // Trigger the actual Reset Password modal
+    setResetToken(token);
+    setOpenForgot(false);
+    setOpenReset(true);
   };
 
   const handleSubmit = async (e) => {
@@ -84,7 +69,9 @@ export default function UserLogin() {
       const data = await response.json();
 
       if (!response.ok) {
-        showAlert(data.error || "Login failed", "error");
+        // IMPROVED FEEDBACK: If the user isn't found, it might be because they are still in the 'staging' table.
+        // The backend should return a specific message, but we can handle general failure here.
+        showAlert(data.error || "Login failed. Please check your credentials or wait for admin approval.", "error");
         return;
       }
 
@@ -111,39 +98,53 @@ export default function UserLogin() {
   };
 
   return (
-    <Box className="user-page" sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", width: "100vw" }}>
-
+    <Box 
+      className="user-page" 
+      sx={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        minHeight: "100vh", 
+        width: "100vw",
+        backgroundColor: "#060745" // Added consistent background
+      }}
+    >
       {/* Logos */}
-      <Box sx={{ width: "95%", display: "flex", justifyContent: "flex-end", p: 2 }}>
+      <Box sx={{ width: "100%", display: "flex", justifyContent: "flex-end", p: 3 }}>
         <Stack direction="row" spacing={2}>
           <img src="bryimg.png" alt="Logo 1" style={{ height: "60px" }} />
           <img src="bago.png" alt="Logo 2" style={{ height: "60px" }} />
         </Stack>
       </Box>
 
-      {/* Content */}
-      <Box sx={{ ml: 30, flex: 1, display: "flex", flexDirection: { xs: "column", md: "row" }, alignItems: "center" }}>
-
+      {/* Main Content Area */}
+      <Box 
+        sx={{ 
+          flex: 1, 
+          display: "flex", 
+          flexDirection: { xs: "column", md: "row" }, 
+          alignItems: "center",
+          px: { xs: 2, md: 8 } 
+        }}
+      >
         <Box sx={{ flex: 1 }}>
           <WalkIns />
         </Box>
 
         <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
           <Box sx={{ width: "100%", maxWidth: 400 }}>
-
             <Typography variant="h4" fontWeight="bold" color="white" textAlign="center" gutterBottom>
-              User Login
+              Welcome Back
             </Typography>
 
             <form onSubmit={handleSubmit}>
               <TextField
-                label="Email"
+                label="Email Address"
                 fullWidth
                 margin="normal"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 variant="standard"
-                sx={{ input: { color: "white" }, label: { color: "rgba(255,255,255,0.7)" } }}
+                sx={inputStyles}
               />
 
               <TextField
@@ -154,13 +155,12 @@ export default function UserLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 variant="standard"
-                sx={{ input: { color: "white" }, label: { color: "rgba(255,255,255,0.7)" } }}
+                sx={inputStyles}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setShowPassword(!showPassword)}
                         edge="end"
                         sx={{ color: "white" }}
                       >
@@ -183,59 +183,63 @@ export default function UserLogin() {
                 label="Login as Admin"
               />
 
-              <Button type="submit" variant="contained" fullWidth sx={{ mt: 3 }} disabled={isLoading}>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                fullWidth 
+                disabled={isLoading}
+                sx={buttonStyles}
+              >
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
 
-              {/* Forgot Password Button */}
-              <Button
-                fullWidth
-                sx={{ mt: 1, color: "rgba(255,255,255,0.7)" }}
-                onClick={() => setOpenForgot(true)}
-              >
-                Forgot Password?
-              </Button>
+              <Stack spacing={1} mt={2} alignItems="center">
+                <Button
+                  sx={{ color: "rgba(255,255,255,0.6)", textTransform: "none" }}
+                  onClick={() => setOpenForgot(true)}
+                >
+                  Forgot Password?
+                </Button>
 
-              <Button
-                fullWidth
-                sx={{ mt: 1, color: "rgba(255,255,255,0.7)" }}
-                onClick={() => navigate("/signup")}
-              >
-                Don't have an account? Sign Up
-              </Button>
+                <Button
+                  sx={{ color: "rgba(255,255,255,0.6)", textTransform: "none" }}
+                  onClick={() => navigate("/signup")}
+                >
+                  Don't have an account? Sign Up
+                </Button>
+              </Stack>
             </form>
-
           </Box>
         </Box>
       </Box>
 
-      {/* Forgot Password Modal - Handles Request and Status Check */}
-      <ForgotPass
-        open={openForgot}
-        onClose={() => setOpenForgot(false)}
-        showAlert={showAlert}
-        onVerified={handleVerificationSuccess} 
-      />
+      {/* Modals & Feedback */}
+      <ForgotPass open={openForgot} onClose={() => setOpenForgot(false)} showAlert={showAlert} onVerified={handleVerificationSuccess} />
+      <ResetPass open={openReset} onClose={() => setOpenReset(false)} token={resetToken} showAlert={showAlert} />
 
-      {/* Reset Password Modal - The second modal triggered after approval */}
-      <ResetPass
-        open={openReset}
-        onClose={() => setOpenReset(false)}
-        token={resetToken}
-        showAlert={showAlert}
-      />
-
-      {/* Snackbar */}
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={severity} variant="filled">
+      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+        <Alert onClose={handleCloseSnackbar} severity={severity} variant="filled" sx={{ width: "100%" }}>
           {alertMsg}
         </Alert>
       </Snackbar>
     </Box>
   );
 }
+
+// Consistent Styles to match Signup.js
+const inputStyles = {
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+  "& .MuiInputBase-input": { color: "white" },
+  "& .MuiInput-underline:before": { borderBottomColor: "rgba(255,255,255,0.3)" },
+  "& .MuiInput-underline:hover:before": { borderBottomColor: "white !important" },
+};
+
+const buttonStyles = {
+  mt: 3, 
+  py: 1.5, 
+  backgroundColor: "white", 
+  color: "#060745", 
+  fontWeight: "bold", 
+  borderRadius: "30px",
+  "&:hover": { backgroundColor: "#e0e0e0" }
+};

@@ -1,17 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  FormControlLabel,
-  Checkbox,
-  Stack,
-  Snackbar,
-  Alert,
-  InputAdornment,
-  IconButton
+  Box, Typography, TextField, Button, FormControlLabel,
+  Checkbox, Stack, Snackbar, Alert, InputAdornment, IconButton
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import WalkIns from "../components/WalkIns";
@@ -31,18 +22,12 @@ const UserSignup = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
-  // Snackbar State
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    msg: "",
-    severity: "error"
-  });
+  const [snackbar, setSnackbar] = useState({ open: false, msg: "", severity: "error" });
 
   const showMessage = (msg, severity = "error") => {
     setSnackbar({ open: true, msg, severity });
   };
 
-  // Validation helpers
   const isMismatch = password !== confirm && confirm.length > 0;
 
   const handleSignup = async (e) => {
@@ -55,9 +40,7 @@ const UserSignup = () => {
 
     const passwordRegex = /^[a-zA-Z0-9]{8}$/;
     if (!passwordRegex.test(password)) {
-      showMessage(
-        "Password must be exactly 8 characters (Letters and Numbers only)"
-      );
+      showMessage("Password must be exactly 8 characters (Letters and Numbers only)");
       return;
     }
 
@@ -69,14 +52,16 @@ const UserSignup = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/signup`, {
+      // Determine endpoint based on checkbox
+      const endpoint = isAdmin ? "/api/signup-admin" : "/api/signup-resident";
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_name: name,
           email_ad: email,
-          password,
-          isAdmin: isAdmin
+          password
         })
       });
 
@@ -85,9 +70,16 @@ const UserSignup = () => {
       if (!response.ok) {
         showMessage(data.error || "Signup failed");
       } else {
-        showMessage("Account created successfully!", "success");
+        // Updated message for the staging table strategy
+        showMessage(
+          isAdmin 
+          ? "Admin request submitted! Please wait for approval." 
+          : "Registration submitted! An admin will verify your account shortly.", 
+          "success"
+        );
 
-        setTimeout(() => navigate("/"), 2000);
+        // Redirect to login after a delay
+        setTimeout(() => navigate("/"), 3000);
       }
     } catch (err) {
       console.error(err);
@@ -101,142 +93,79 @@ const UserSignup = () => {
     <Box
       className="user-page"
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        width: "100vw",
-        overflowX: "hidden",
-        backgroundColor: "#060745"
+        display: "flex", flexDirection: "column", minHeight: "100vh",
+        width: "100vw", overflowX: "hidden", backgroundColor: "#060745"
       }}
     >
-      {/* LOGOS */}
-      <Box
-        sx={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "flex-end",
-          p: 3
-        }}
-      >
+      {/* LOGOS (Kept your original logic) */}
+      <Box sx={{ width: "100%", display: "flex", justifyContent: "flex-end", p: 3 }}>
         <Stack direction="row" spacing={2}>
           <img src="bryimg.png" alt="Logo 1" style={{ height: "60px" }} />
           <img src="bago.png" alt="Logo 2" style={{ height: "60px" }} />
         </Stack>
       </Box>
 
-      {/* MAIN CONTENT */}
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          alignItems: "center",
-          width: "100%",
-          px: { xs: 2, md: 8 }
-        }}
-      >
+      <Box sx={{ flex: 1, display: "flex", flexDirection: { xs: "column", md: "row" }, alignItems: "center", width: "100%", px: { xs: 2, md: 8 } }}>
         <Box sx={{ flex: 1 }}>
           <WalkIns />
         </Box>
 
         <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
           <Box sx={{ width: "100%", maxWidth: 400 }}>
-            <Typography
-              variant="h4"
-              fontWeight="bold"
-              color="white"
-              textAlign="center"
-              gutterBottom
-            >
-              Create Account
+            <Typography variant="h4" fontWeight="bold" color="white" textAlign="center" gutterBottom>
+              {isAdmin ? "Admin Application" : "Create Account"}
             </Typography>
 
             <form onSubmit={handleSignup}>
               <TextField
                 label="Full Name"
-                fullWidth
-                margin="dense"
+                fullWidth margin="dense"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                variant="standard"
-                sx={inputStyles}
+                variant="standard" sx={inputStyles}
               />
 
               <TextField
                 label="Email Address"
-                type="email"
-                fullWidth
-                margin="dense"
+                type="email" fullWidth margin="dense"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                variant="standard"
-                sx={inputStyles}
+                variant="standard" sx={inputStyles}
               />
 
-              {/* PASSWORD */}
               <TextField
                 label="Password (8 chars, Alphanumeric)"
                 type={showPassword ? "text" : "password"}
-                fullWidth
-                margin="dense"
+                fullWidth margin="dense"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                variant="standard"
-                sx={inputStyles}
+                variant="standard" sx={inputStyles}
                 autoComplete="new-password"
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        onClick={() =>
-                          setShowPassword((prev) => !prev)
-                        }
-                        onMouseDown={(e) => e.preventDefault()}
-                        edge="end"
-                        sx={{ color: "white" }}
-                      >
-                        {showPassword ? (
-                          <VisibilityOff />
-                        ) : (
-                          <Visibility />
-                        )}
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" sx={{ color: "white" }}>
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
                   )
                 }}
               />
 
-              {/* CONFIRM PASSWORD */}
               <TextField
                 label="Confirm Password"
                 type={showConfirmPassword ? "text" : "password"}
-                fullWidth
-                margin="dense"
+                fullWidth margin="dense"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                variant="standard"
-                sx={inputStyles}
-                autoComplete="new-password"
+                variant="standard" sx={inputStyles}
                 error={isMismatch}
-                helperText={
-                  isMismatch ? "Passwords do not match!" : ""
-                }
+                helperText={isMismatch ? "Passwords do not match!" : ""}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        onClick={() =>
-                          setShowConfirmPassword((prev) => !prev)
-                        }
-                        onMouseDown={(e) => e.preventDefault()}
-                        edge="end"
-                        sx={{ color: "white" }}
-                      >
-                        {showConfirmPassword ? (
-                          <VisibilityOff />
-                        ) : (
-                          <Visibility />
-                        )}
+                      <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" sx={{ color: "white" }}>
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
                   )
@@ -248,27 +177,19 @@ const UserSignup = () => {
                 control={
                   <Checkbox
                     checked={isAdmin}
-                    onChange={(e) =>
-                      setIsAdmin(e.target.checked)
-                    }
+                    onChange={(e) => setIsAdmin(e.target.checked)}
                     sx={{ color: "white" }}
                   />
                 }
-                label="Register as Admin"
+                label="Apply for Admin Access"
               />
 
               <Button
-                type="submit"
-                variant="contained"
-                fullWidth
+                type="submit" variant="contained" fullWidth
                 sx={buttonStyles}
                 disabled={isLoading}
               >
-                {isLoading
-                  ? "Processing..."
-                  : isAdmin
-                  ? "Request Admin Access"
-                  : "Sign Up"}
+                {isLoading ? "Processing..." : isAdmin ? "Submit Admin Request" : "Sign Up"}
               </Button>
 
               <Button
@@ -283,36 +204,28 @@ const UserSignup = () => {
         </Box>
       </Box>
 
-      {/* SNACKBAR */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={() =>
-          setSnackbar({ ...snackbar, open: false })
-        }
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} variant="filled">
-          {snackbar.msg}
-        </Alert>
+        <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>
       </Snackbar>
     </Box>
   );
 };
 
-// Styles
 const inputStyles = {
   "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-  "& .MuiInputBase-input": { color: "white" }
+  "& .MuiInputBase-input": { color: "white" },
+  "& .MuiInput-underline:before": { borderBottomColor: "rgba(255,255,255,0.3)" },
+  "& .MuiInput-underline:hover:before": { borderBottomColor: "white" },
 };
 
 const buttonStyles = {
-  mt: 3,
-  py: 1.5,
-  backgroundColor: "white",
-  color: "#060745",
-  fontWeight: "bold",
-  borderRadius: "30px"
+  mt: 3, py: 1.5, backgroundColor: "white", color: "#060745",
+  fontWeight: "bold", borderRadius: "30px", "&:hover": { backgroundColor: "#e0e0e0" }
 };
 
 export default UserSignup;
