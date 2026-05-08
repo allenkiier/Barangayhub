@@ -33,17 +33,20 @@ const UserSignup = () => {
   const handleSignup = async (e) => {
     e.preventDefault();
 
+    // 1. Basic Validation
     if (!name || !email || !password || !confirm) {
       showMessage("Please fill in all fields");
       return;
     }
 
+    // 2. Password Strength Check
     const passwordRegex = /^[a-zA-Z0-9]{8}$/;
     if (!passwordRegex.test(password)) {
       showMessage("Password must be exactly 8 characters (Letters and Numbers only)");
       return;
     }
 
+    // 3. Confirm Password Check
     if (password !== confirm) {
       showMessage("Passwords do not match");
       return;
@@ -52,38 +55,36 @@ const UserSignup = () => {
     setIsLoading(true);
 
     try {
-      // Determine endpoint based on checkbox
-      const endpoint = isAdmin ? "/api/signup-admin" : "/api/signup-resident";
-
-      const response = await fetch(`${API_URL}${endpoint}`, {
+      // Hits the single endpoint defined in your backend
+      const response = await fetch(`${API_URL}/api/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_name: name,
           email_ad: email,
-          password
+          password,
+          isAdmin: isAdmin 
         })
       });
+
+      // Safety check for non-JSON responses (prevents the "<!DOCTYPE" error)
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server returned a non-JSON response. Check backend routes.");
+      }
 
       const data = await response.json();
 
       if (!response.ok) {
         showMessage(data.error || "Signup failed");
       } else {
-        // Updated message for the staging table strategy
-        showMessage(
-          isAdmin 
-          ? "Admin request submitted! Please wait for approval." 
-          : "Registration submitted! An admin will verify your account shortly.", 
-          "success"
-        );
-
-        // Redirect to login after a delay
-        setTimeout(() => navigate("/"), 3000);
+        // Use the message from your backend: "Request submitted for approval!"
+        showMessage(data.message || "Request submitted!", "success");
+        setTimeout(() => navigate("/"), 2500);
       }
     } catch (err) {
-      console.error(err);
-      showMessage("Server error during signup");
+      console.error("Signup Error:", err);
+      showMessage(err.message || "Server error during signup");
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +98,6 @@ const UserSignup = () => {
         width: "100vw", overflowX: "hidden", backgroundColor: "#060745"
       }}
     >
-      {/* LOGOS (Kept your original logic) */}
       <Box sx={{ width: "100%", display: "flex", justifyContent: "flex-end", p: 3 }}>
         <Stack direction="row" spacing={2}>
           <img src="bryimg.png" alt="Logo 1" style={{ height: "60px" }} />
