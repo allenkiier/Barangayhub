@@ -1343,14 +1343,38 @@ app.get('/api/users', (req, res) => {
       province,
       birthdate,
       birthplace,
-      isAdmin
+      isAdmin,
+      is_approved  -- Added this to track "Accepted" status
      FROM user`,
     [],
     (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
+    }
+  );
+});
+app.post("/api/admin/approve-user/:id", (req, res) => {
+  const { id } = req.params;
+  db.run(
+    `UPDATE user SET is_approved = 1 WHERE userid = ?`,
+    [id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "User accepted/approved successfully" });
+    }
+  );
+});
+
+app.put('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, email, civil_status, sex, contact_no } = req.body;
+
+  db.run(
+    `UPDATE user SET user_name = ?, email_ad = ?, civil_status = ?, sex = ?, contact_no = ? WHERE userid = ?`,
+    [name, email, civil_status, sex, contact_no, id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: "User updated successfully" });
     }
   );
 });

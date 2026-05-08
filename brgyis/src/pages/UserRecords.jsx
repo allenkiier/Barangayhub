@@ -20,11 +20,15 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
-  Alert
+  Alert,
+  Chip
 } from '@mui/material';
 
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PersonIcon from '@mui/icons-material/Person';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -34,7 +38,7 @@ const UserRecords = () => {
   const [open, setOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // ✅ DELETE CONFIRM STATE
+  // DELETE CONFIRM STATE
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
 
@@ -52,7 +56,7 @@ const UserRecords = () => {
     contact_no: ''
   });
 
-  // ✅ SNACKBAR HELPER
+  // SNACKBAR HELPER
   const showSnack = useCallback((message, severity = 'success') => {
     setSnack({ open: true, message, severity });
   }, []);
@@ -61,7 +65,7 @@ const UserRecords = () => {
     setSnack({ ...snack, open: false });
   };
 
-  // ✅ FETCH USERS
+  // FETCH USERS
   const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/users`);
@@ -73,28 +77,43 @@ const UserRecords = () => {
     }
   }, [showSnack]);
 
-  // ✅ INITIAL LOAD
+  // INITIAL LOAD
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // ✅ SEARCH FILTER LOGIC
+  // APPROVE USER HANDLER
+  const handleApprove = async (userId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/approve-user/${userId}`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to approve user');
+
+      setUsers(prev => prev.map(u => 
+        (u.id || u.userid) === userId ? { ...u, is_approved: 1 } : u
+      ));
+      showSnack('User accepted successfully!');
+    } catch (err) {
+      showSnack(err.message, 'error');
+    }
+  };
+
+  // SEARCH FILTER LOGIC
   const filteredUsers = users.filter((user) => {
     const keyword = search.toLowerCase();
     const userId = String(user.id || user.userid || '');
+    const userName = (user.name || user.user_name || '').toLowerCase();
+    const userEmail = (user.email || user.email_ad || '').toLowerCase();
+
     return (
-      user.name?.toLowerCase().includes(keyword) ||
-      user.user_name?.toLowerCase().includes(keyword) ||
-      user.email?.toLowerCase().includes(keyword) ||
-      user.email_ad?.toLowerCase().includes(keyword) ||
-      user.sex?.toLowerCase().includes(keyword) ||
-      user.civil_status?.toLowerCase().includes(keyword) ||
-      user.contact_no?.toLowerCase().includes(keyword) ||
+      userName.includes(keyword) ||
+      userEmail.includes(keyword) ||
       userId.includes(keyword)
     );
   });
 
-  // ✅ EDIT HANDLER
+  // EDIT HANDLER
   const handleEdit = (user) => {
     setSelectedUser(user);
     setForm({
@@ -111,27 +130,18 @@ const UserRecords = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ✅ UPDATE USER
+  // UPDATE USER
   const handleUpdate = async () => {
     try {
       const targetId = selectedUser.id || selectedUser.userid;
-      const token = localStorage.getItem('token'); 
-
-      if (!token) throw new Error("Session expired. Please log in again.");
-
       const res = await fetch(`${API_URL}/api/users/${targetId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Update failed');
+      if (!res.ok) throw new Error('Update failed');
 
-      // Update local state for instant feedback
       setUsers(prev => prev.map(u => 
         (u.id || u.userid) === targetId ? { ...u, ...form } : u
       ));
@@ -143,7 +153,7 @@ const UserRecords = () => {
     }
   };
 
-  // ✅ DELETE HANDLERS
+  // DELETE HANDLERS
   const handleDeleteClick = (user) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
@@ -154,8 +164,6 @@ const UserRecords = () => {
       const targetId = userToDelete.id || userToDelete.userid;
       const token = localStorage.getItem('token'); 
 
-      if (!token) throw new Error("Authorization token missing.");
-
       const res = await fetch(`${API_URL}/api/users/${targetId}`, {
         method: 'DELETE',
         headers: {
@@ -164,18 +172,10 @@ const UserRecords = () => {
         }
       });
 
-      // Handle 403 Forbidden specifically
-      if (res.status === 403) {
-        throw new Error('Forbidden: You do not have permission to delete records.');
-      }
+      if (!res.ok) throw new Error('Deletion failed');
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Deletion failed');
-
-      // ✅ REMOVE FROM STATE IMMEDIATELY
       setUsers(prev => prev.filter(u => (u.id || u.userid) !== targetId));
-      
-      showSnack('User and all associated data deleted successfully');
+      showSnack('User and all associated data purged');
     } catch (err) {
       showSnack(err.message, 'error');
     } finally {
@@ -196,7 +196,7 @@ const UserRecords = () => {
         <Paper sx={{ p: 2, borderRadius: 3, boxShadow: 3 }}>
           <TextField
             fullWidth
-            label="Search users by name, email, or ID..."
+            label="Search residents..."
             variant="outlined"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -210,9 +210,8 @@ const UserRecords = () => {
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>ID</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Sex</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Role</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Contact</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#f5f5f5' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -220,28 +219,47 @@ const UserRecords = () => {
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id || user.userid} hover>
                     <TableCell>{user.id || user.userid}</TableCell>
-                    <TableCell>{user.name || user.user_name}</TableCell>
+                    <TableCell sx={{ fontWeight: 'medium' }}>{user.name || user.user_name}</TableCell>
                     <TableCell>{user.email || user.email_ad}</TableCell>
-                    <TableCell>{user.sex}</TableCell>
-                    <TableCell>{user.civil_status}</TableCell>
-                    <TableCell>{user.contact_no}</TableCell>
                     <TableCell>
-                      <Tooltip title="Edit">
-                        <IconButton onClick={() => handleEdit(user)} color="primary">
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton onClick={() => handleDeleteClick(user)} color="error">
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
+                      {user.isAdmin ? 
+                        <Chip icon={<AdminPanelSettingsIcon />} label="Admin" color="secondary" size="small" variant="outlined" /> : 
+                        <Chip icon={<PersonIcon />} label="Resident" size="small" variant="outlined" />
+                      }
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={user.is_approved ? "ACCEPTED" : "PENDING"} 
+                        color={user.is_approved ? "success" : "warning"} 
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        {!user.is_approved && (
+                          <Tooltip title="Accept User">
+                            <IconButton onClick={() => handleApprove(user.id || user.userid)} color="success">
+                              <CheckCircleIcon />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        <Tooltip title="Edit">
+                          <IconButton onClick={() => handleEdit(user)} color="primary">
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton onClick={() => handleDeleteClick(user)} color="error">
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))}
                 {filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">No records found.</TableCell>
+                    <TableCell colSpan={6} align="center">No records found.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -284,7 +302,7 @@ const UserRecords = () => {
         <DialogContent>
           <Typography>
             Are you sure you want to delete <b>{userToDelete?.name || userToDelete?.user_name}</b>? 
-            This will also permanently remove all their <b>requests, clearances, and reports</b> from the database.
+            This will also permanently remove all their <b>requests, clearances, and reports</b>.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
@@ -296,11 +314,11 @@ const UserRecords = () => {
       {/* NOTIFICATIONS */}
       <Snackbar
         open={snack.open}
-        autoHideDuration={5000}
+        autoHideDuration={4000}
         onClose={handleCloseSnack}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert severity={snack.severity} variant="filled" onClose={handleCloseSnack} sx={{ width: '100%' }}>
+        <Alert severity={snack.severity} variant="filled" onClose={handleCloseSnack}>
           {snack.message}
         </Alert>
       </Snackbar>
