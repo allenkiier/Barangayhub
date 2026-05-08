@@ -16,8 +16,7 @@ const AdminRequest = () => {
   const [requests, setRequests] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [actionType, setActionType] = useState("");
-  const [selectedRequest, setSelectedRequest] = useState(null); // Store the whole object
-
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [snack, setSnack] = useState({ open: false, message: "", severity: "success" });
 
   const showSnack = useCallback((message, severity = "success") => {
@@ -26,36 +25,31 @@ const AdminRequest = () => {
 
   const handleCloseSnack = () => setSnack({ ...snack, open: false });
 
-  // ================= FETCH DATA (Both Tables) =================
+  // ================= FETCH DATA (Unified Endpoint) =================
   const fetchRequests = useCallback(async () => {
     try {
-      // Fetch both types of requests in parallel
-      const [resAdmins, resResidents] = await Promise.all([
-        fetch(`${API_URL}/api/pending-admins`),
-        fetch(`${API_URL}/api/pending-residents`)
-      ]);
+      // Use the token for authentication as per your backend requirements
+      const token = localStorage.getItem("token");
+      
+      const response = await fetch(`${API_URL}/api/admin/requests`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
 
-      const admins = await resAdmins.json();
-      const residents = await resResidents.json();
+      if (!response.ok) {
+        if (response.status === 404) throw new Error("API endpoint not found (404)");
+        throw new Error("Failed to fetch requests");
+      }
 
-      // Normalize data so the UI can render them the same way
-      const normalizedAdmins = admins.map(a => ({
-        id: a.admin_req_id,
-        user_name: a.user_name,
-        email_ad: a.email_ad,
-        isAdmin: true // Flag for the UI
-      }));
-
-      const normalizedResidents = residents.map(r => ({
-        id: r.request_id,
-        user_name: r.user_name,
-        email_ad: r.email_ad,
-        isAdmin: false
-      }));
-
-      setRequests([...normalizedAdmins, ...normalizedResidents]);
+      const data = await response.json();
+      
+      // Since the backend 'UNION ALL' query already provides the correct 
+      // structure (id, user_name, email_ad, type), we just set it.
+      setRequests(data);
     } catch (err) {
-      showSnack("Error loading requests: " + err.message, "error");
+      console.error(err);
+      showSnack(err.message, "error");
     }
   }, [showSnack]);
 
@@ -70,28 +64,31 @@ const AdminRequest = () => {
 
   const handleConfirm = async () => {
     try {
-      const { id, isAdmin } = selectedRequest;
+      const { id, type } = selectedRequest; // 'type' is 'admin' or 'resident' from backend
       let endpoint = "";
 
-      // Construct endpoint based on Type and Role
       if (actionType === "approve") {
-        endpoint = isAdmin 
+        endpoint = type === 'admin' 
           ? `${API_URL}/api/approve-admin/${id}` 
           : `${API_URL}/api/approve-resident/${id}`;
       } else {
-        endpoint = isAdmin 
+        endpoint = type === 'admin' 
           ? `${API_URL}/api/reject-admin/${id}` 
           : `${API_URL}/api/reject-resident/${id}`;
       }
 
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
       });
 
-      if (!res.ok) throw new Error(`Failed to ${actionType} request`);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || `Failed to ${actionType} request`);
 
-      showSnack(`Successfully ${actionType}d the request!`, "success");
+      showSnack(result.message || `Successfully processed request!`, "success");
       await fetchRequests(); 
     } catch (err) {
       showSnack(err.message, "error");
@@ -110,52 +107,55 @@ const AdminRequest = () => {
 
         <Stack spacing={2}>
           {requests.length === 0 ? (
-            <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
+            <Paper sx={{ p: 4, textAlign: 'center', borderRadius: 3, bgcolor: "rgba(255,255,255,0.9)" }}>
               <Typography color="text.secondary">No pending requests at the moment.</Typography>
             </Paper>
           ) : (
-            requests.map((req) => (
-              <Paper
-                key={`${req.isAdmin ? 'adm' : 'res'}-${req.id}`}
-                elevation={2}
-                sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: 2 }}
-              >
-                <Box display="flex" alignItems="center" gap={2}>
-                  <Avatar sx={{ bgcolor: req.isAdmin ? "#f57c00" : "#060745" }}>
-                    {req.isAdmin ? <ShieldIcon /> : <PersonIcon />}
-                  </Avatar>
-                  <Box>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography fontWeight="bold" variant="subtitle1">{req.user_name}</Typography>
-                      <Chip 
-                        label={req.isAdmin ? "ADMIN ACCESS" : "RESIDENT"} 
-                        size="small"
-                        sx={{ 
-                          height: '20px', fontSize: '0.65rem', fontWeight: 'bold',
-                          bgcolor: req.isAdmin ? "#fff3e0" : "#e8f5e9",
-                          color: req.isAdmin ? "#e65100" : "#2e7d32"
-                        }} 
-                      />
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary">{req.email_ad}</Typography>
+            requests.map((req) => {
+              const isAdminReq = req.type === 'admin';
+              return (
+                <Paper
+                  key={`${req.type}-${req.id}`}
+                  elevation={2}
+                  sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between", borderRadius: 2 }}
+                >
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <Avatar sx={{ bgcolor: isAdminReq ? "#f57c00" : "#060745" }}>
+                      {isAdminReq ? <ShieldIcon /> : <PersonIcon />}
+                    </Avatar>
+                    <Box>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography fontWeight="bold" variant="subtitle1">{req.user_name}</Typography>
+                        <Chip 
+                          label={isAdminReq ? "ADMIN ACCESS" : "RESIDENT"} 
+                          size="small"
+                          sx={{ 
+                            height: '20px', fontSize: '0.65rem', fontWeight: 'bold',
+                            bgcolor: isAdminReq ? "#fff3e0" : "#e8f5e9",
+                            color: isAdminReq ? "#e65100" : "#2e7d32"
+                          }} 
+                        />
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary">{req.email_ad}</Typography>
+                    </Box>
                   </Box>
-                </Box>
 
-                <Box>
-                  <IconButton color="success" onClick={() => handleOpenConfirm(req, "approve")} sx={{ mr: 1, border: '1px solid #e0e0e0' }}>
-                    <CheckIcon />
-                  </IconButton>
-                  <IconButton color="error" onClick={() => handleOpenConfirm(req, "reject")} sx={{ border: '1px solid #e0e0e0' }}>
-                    <CloseIcon />
-                  </IconButton>
-                </Box>
-              </Paper>
-            ))
+                  <Box>
+                    <IconButton color="success" onClick={() => handleOpenConfirm(req, "approve")} sx={{ mr: 1, border: '1px solid #e0e0e0' }}>
+                      <CheckIcon />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleOpenConfirm(req, "reject")} sx={{ border: '1px solid #e0e0e0' }}>
+                      <CloseIcon />
+                    </IconButton>
+                  </Box>
+                </Paper>
+              );
+            })
           )}
         </Stack>
       </Box>
 
-      {/* MODAL & SNACKBAR (Keep your original code for these) */}
+      {/* Confirmation Dialog */}
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
          <DialogTitle>{actionType === "approve" ? "Confirm Approval" : "Confirm Rejection"}</DialogTitle>
          <DialogContent>
@@ -169,7 +169,7 @@ const AdminRequest = () => {
          </DialogActions>
       </Dialog>
 
-      <Snackbar open={snack.open} autoHideDuration={4000} onClose={handleCloseSnack}>
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={handleCloseSnack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity={snack.severity} variant="filled">{snack.message}</Alert>
       </Snackbar>
     </Container>

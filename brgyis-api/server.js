@@ -397,17 +397,21 @@ app.post('/api/approve-admin/:id', (req, res) => {
 
 // ===================== ADMIN REQUESTS =====================
 app.get('/api/admin/requests', authenticateToken, requireAdmin, (req, res) => {
-  if (req.user.isAdmin !== 1) return res.status(403).json({ error: "Admin only" });
-  db.all(
-    `SELECT userid, user_name, email_ad, admin_status
-     FROM user
-     WHERE is_approved = 0 OR admin_status = 'pending'`,
-    [],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    }
-  );
+    // We fetch from both staging tables and add a 'type' column so the frontend knows which button to show
+    const sql = `
+        SELECT request_id AS id, user_name, email_ad, 'resident' AS type 
+        FROM registration_req
+        UNION ALL
+        SELECT admin_req_id AS id, user_name, email_ad, 'admin' AS type 
+        FROM admin_req
+    `;
+
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows);
+    });
 });
 
 
