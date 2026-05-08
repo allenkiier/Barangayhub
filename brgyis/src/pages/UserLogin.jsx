@@ -24,6 +24,7 @@ export default function UserLogin() {
   const [severity, setSeverity] = useState("error");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Modal States
   const [openForgot, setOpenForgot] = useState(false);
   const [openReset, setOpenReset] = useState(false);
   const [resetToken, setResetToken] = useState("");
@@ -49,7 +50,7 @@ export default function UserLogin() {
     e.preventDefault();
 
     if (!email || !password) {
-      showAlert("Please fill in all fields", "error");
+      showAlert("Please fill in all fields");
       return;
     }
 
@@ -69,12 +70,11 @@ export default function UserLogin() {
       const data = await response.json();
 
       if (!response.ok) {
-        // IMPROVED FEEDBACK: If the user isn't found, it might be because they are still in the 'staging' table.
-        // The backend should return a specific message, but we can handle general failure here.
-        showAlert(data.error || "Login failed. Please check your credentials or wait for admin approval.", "error");
+        showAlert(data.error || "Login failed");
         return;
       }
 
+      // Successful Login
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data));
       localStorage.setItem("userid", data.userid);
@@ -91,23 +91,15 @@ export default function UserLogin() {
 
     } catch (err) {
       console.error(err);
-      showAlert("Server error during login", "error");
+      showAlert("Server error during login");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Box 
-      className="user-page" 
-      sx={{ 
-        display: "flex", 
-        flexDirection: "column", 
-        minHeight: "100vh", 
-        width: "100vw",
-        backgroundColor: "#060745" // Added consistent background
-      }}
-    >
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: "#060745" }}>
+      
       {/* Logos */}
       <Box sx={{ width: "100%", display: "flex", justifyContent: "flex-end", p: 3 }}>
         <Stack direction="row" spacing={2}>
@@ -116,16 +108,9 @@ export default function UserLogin() {
         </Stack>
       </Box>
 
-      {/* Main Content Area */}
-      <Box 
-        sx={{ 
-          flex: 1, 
-          display: "flex", 
-          flexDirection: { xs: "column", md: "row" }, 
-          alignItems: "center",
-          px: { xs: 2, md: 8 } 
-        }}
-      >
+      {/* Main Content */}
+      <Box sx={{ flex: 1, display: "flex", alignItems: "center", px: { xs: 2, md: 8 } }}>
+        
         <Box sx={{ flex: 1 }}>
           <WalkIns />
         </Box>
@@ -133,12 +118,12 @@ export default function UserLogin() {
         <Box sx={{ flex: 1, display: "flex", justifyContent: "center" }}>
           <Box sx={{ width: "100%", maxWidth: 400 }}>
             <Typography variant="h4" fontWeight="bold" color="white" textAlign="center" gutterBottom>
-              Welcome Back
+              User Login
             </Typography>
 
             <form onSubmit={handleSubmit}>
               <TextField
-                label="Email Address"
+                label="Email"
                 fullWidth
                 margin="normal"
                 value={email}
@@ -159,11 +144,7 @@ export default function UserLogin() {
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        sx={{ color: "white" }}
-                      >
+                      <IconButton onClick={() => setShowPassword(!showPassword)} sx={{ color: "white" }}>
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
@@ -183,27 +164,20 @@ export default function UserLogin() {
                 label="Login as Admin"
               />
 
-              <Button 
-                type="submit" 
-                variant="contained" 
-                fullWidth 
-                disabled={isLoading}
-                sx={buttonStyles}
-              >
+              <Button type="submit" variant="contained" fullWidth sx={buttonStyles} disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
 
               <Stack spacing={1} mt={2} alignItems="center">
-                <Button
-                  sx={{ color: "rgba(255,255,255,0.6)", textTransform: "none" }}
-                  onClick={() => setOpenForgot(true)}
+                <Button 
+                    sx={{ color: "rgba(255,255,255,0.7)", textTransform: "none" }} 
+                    onClick={() => setOpenForgot(true)}
                 >
                   Forgot Password?
                 </Button>
-
-                <Button
-                  sx={{ color: "rgba(255,255,255,0.6)", textTransform: "none" }}
-                  onClick={() => navigate("/signup")}
+                <Button 
+                    sx={{ color: "rgba(255,255,255,0.7)", textTransform: "none" }} 
+                    onClick={() => navigate("/signup")}
                 >
                   Don't have an account? Sign Up
                 </Button>
@@ -213,25 +187,21 @@ export default function UserLogin() {
         </Box>
       </Box>
 
-      {/* Modals & Feedback */}
+      {/* Modals */}
       <ForgotPass open={openForgot} onClose={() => setOpenForgot(false)} showAlert={showAlert} onVerified={handleVerificationSuccess} />
       <ResetPass open={openReset} onClose={() => setOpenReset(false)} token={resetToken} showAlert={showAlert} />
 
-      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
-        <Alert onClose={handleCloseSnackbar} severity={severity} variant="filled" sx={{ width: "100%" }}>
-          {alertMsg}
-        </Alert>
+      {/* Feedback */}
+      <Snackbar open={openSnackbar} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+        <Alert severity={severity} variant="filled">{alertMsg}</Alert>
       </Snackbar>
     </Box>
   );
 }
 
-// Consistent Styles to match Signup.js
 const inputStyles = {
   "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
-  "& .MuiInputBase-input": { color: "white" },
-  "& .MuiInput-underline:before": { borderBottomColor: "rgba(255,255,255,0.3)" },
-  "& .MuiInput-underline:hover:before": { borderBottomColor: "white !important" },
+  "& .MuiInputBase-input": { color: "white" }
 };
 
 const buttonStyles = {
