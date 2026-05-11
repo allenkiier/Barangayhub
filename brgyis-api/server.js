@@ -357,47 +357,50 @@ app.post('/api/signup', (req, res) => {
     });
 });
 
-app.post('/api/approve-resident/:id', (req, res) => {
-    const id = req.params.id;
-    db.serialize(() => {
-        db.get("SELECT * FROM registration_req WHERE request_id = ?", [id], (err, row) => {
-            if (err || !row) return res.status(404).json({ error: "Request not found" });
+app.post('/api/approve-resident/:id', authenticateToken, requireAdmin, (req, res) => {
+    const { id } = req.params;
 
-            // Moving into your main 'user' table with your PRAGMA attributes
-            const sql = `INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved, admin_status) 
-                         VALUES (?, ?, ?, 0, 1, 'none')`;
-            
-            db.run(sql, [row.user_name, row.email_ad, row.password], (insertErr) => {
-                if (insertErr) return res.status(500).json({ error: "Migration failed" });
-                db.run("DELETE FROM registration_req WHERE request_id = ?", [id]);
-                res.json({ message: "Resident approved and account created!" });
-            });
+    // 1. Get the data from the staging table
+    db.get("SELECT * FROM registration_req WHERE request_id = ?", [id], (err, row) => {
+        if (err || !row) return res.status(404).json({ error: "Request not found" });
+
+        // 2. Insert into the main user table (isAdmin = 0)
+        const insertSql = `
+            INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved) 
+            VALUES (?, ?, ?, 0, 1)`;
+        
+        db.run(insertSql, [row.user_name, row.email_ad, row.passwordHash], function(err) {
+            if (err) return res.status(500).json({ error: "Failed to create user: " + err.message });
+
+            // 3. Remove from staging
+            db.run("DELETE FROM registration_req WHERE request_id = ?", [id]);
+            res.json({ message: "Resident approved successfully!" });
         });
     });
 });
 
-app.post('/api/approve-admin/:id', (req, res) => {
-    const id = req.params.id;
-    db.serialize(() => {
-        db.get("SELECT * FROM admin_req WHERE admin_req_id = ?", [id], (err, row) => {
-            if (err || !row) return res.status(404).json({ error: "Request not found" });
+app.post('/api/approve-admin/:id', authenticateToken, requireAdmin, (req, res) => {
+    const { id } = req.params;
 
-            // Moving into 'user' table as an Admin
-            const sql = `INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved, admin_status) 
-                         VALUES (?, ?, ?, 1, 1, 'active')`;
-            
-            db.run(sql, [row.user_name, row.email_ad, row.password], (insertErr) => {
-                if (insertErr) return res.status(500).json({ error: "Admin promotion failed" });
-                db.run("DELETE FROM admin_req WHERE admin_req_id = ?", [id]);
-                res.json({ message: "Admin approved successfully!" });
-            });
+    db.get("SELECT * FROM admin_req WHERE admin_req_id = ?", [id], (err, row) => {
+        if (err || !row) return res.status(404).json({ error: "Admin request not found" });
+
+        // Insert with isAdmin = 1
+        const insertSql = `
+            INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved) 
+            VALUES (?, ?, ?, 1, 1)`;
+        
+        db.run(insertSql, [row.user_name, row.email_ad, row.passwordHash], function(err) {
+            if (err) return res.status(500).json({ error: "Failed to create admin: " + err.message });
+
+            db.run("DELETE FROM admin_req WHERE admin_req_id = ?", [id]);
+            res.json({ message: "Admin promoted and approved!" });
         });
     });
 });
 
 // ===================== ADMIN REQUESTS =====================
 app.get('/api/admin/requests', authenticateToken, requireAdmin, (req, res) => {
-    // We fetch from both staging tables and add a 'type' column so the frontend knows which button to show
     const sql = `
         SELECT request_id AS id, user_name, email_ad, 'resident' AS type 
         FROM registration_req
@@ -408,6 +411,7 @@ app.get('/api/admin/requests', authenticateToken, requireAdmin, (req, res) => {
 
     db.all(sql, [], (err, rows) => {
         if (err) {
+            console.error("Fetch requests error:", err.message);
             return res.status(500).json({ error: err.message });
         }
         res.json(rows);
