@@ -1302,9 +1302,9 @@ app.get('/api/requests/user/:userid', (req, res) => {
 app.delete('/api/requests/:id', authenticateToken, (req, res) => {
   const { id } = req.params;
 
-  const sql = `DELETE FROM request WHERE req_id = ?`;
+const sql = `DELETE FROM request WHERE req_id = ? AND userid = ?`;
 
-  db.run(sql, [id], function (err) {
+  db.run(sql, [id, req.user.userid], function (err) {
     if (err) {
       return res.status(500).json({ error: "Failed to delete request" });
     }
