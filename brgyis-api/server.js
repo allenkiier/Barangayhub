@@ -1332,6 +1332,7 @@ app.delete("/api/council/delete/:id", (req, res) => {
 app.get('/api/users', (req, res) => {
   db.all(
     `SELECT 
+      userid, 
       userid AS id,
       user_name AS name,
       email_ad AS email,
@@ -1344,7 +1345,9 @@ app.get('/api/users', (req, res) => {
       birthdate,
       birthplace,
       isAdmin,
-      is_approved  -- Added this to track "Accepted" status
+      isPWD,
+      isSenior,
+      is_approved  
      FROM user`,
     [],
     (err, rows) => {
@@ -1365,19 +1368,6 @@ app.post("/api/admin/approve-user/:id", (req, res) => {
   );
 });
 
-app.put('/api/users/:id', (req, res) => {
-  const { id } = req.params;
-  const { name, email, civil_status, sex, contact_no } = req.body;
-
-  db.run(
-    `UPDATE user SET user_name = ?, email_ad = ?, civil_status = ?, sex = ?, contact_no = ? WHERE userid = ?`,
-    [name, email, civil_status, sex, contact_no, id],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: "User updated successfully" });
-    }
-  );
-});
 
 // ===================== COMPLETE USER DELETE ENDPOINT =====================
 app.delete('/api/users/:id', authenticateToken, requireAdmin, (req, res) => {
