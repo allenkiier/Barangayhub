@@ -40,13 +40,13 @@ const theme = createTheme({
   typography: { fontFamily: 'Inter, sans-serif' }
 });
 
-// Mapping backend names to UI styles
 const SERVICE_CONFIG = {
-  'Certificate of Indigency': { icon: <DescriptionIcon />, color: '#1976d2' },
-  'Barangay ID Form': { icon: <BadgeIcon />, color: '#9c27b0' },
-  'Barangay Clearance': { icon: <GavelIcon />, color: '#2e7d32' },
-  'Barangay Business Clearance': { icon: <BusinessCenterIcon />, color: '#ed6c02' },
-  'Incident Report': { icon: <ReportProblemIcon />, color: '#d32f2f' },
+  // Update these keys to match exactly what svc.trans_name returns
+  'Indigency': { icon: <DescriptionIcon />, color: '#1976d2' }, 
+  'Barangay ID': { icon: <BadgeIcon />, color: '#9c27b0' },
+  'Barangay Clearance': { icon: <GavelIcon />, color: '#2e7d32' }, // This one works in your image!
+  'Business Clearance': { icon: <BusinessCenterIcon />, color: '#ed6c02' },
+  'Incident Report': { icon: <ReportProblemIcon />, color: '#d32f2f' }, // This one works too!
   'Suggestions': { icon: <MapsUgcIcon />, color: '#0288d1' },
   'Walk-In Complaint': { icon: <ReportProblemIcon />, color: '#6a1b9a' },
 };
