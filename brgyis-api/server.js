@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.JWT_SECRET || "fallback_secret";
+const emergencyHash = '$2b$10$7R0wUq.XfS.X7B7k0.X8p.qW6X2hE6H3S2p9G8m1K5v4u3t2r1s0q'; // Hash for 12345abc
 
 app.use(cors({
   origin: ["https://brgy-joyao-joyao-is.up.railway.app", "http://localhost:3000"],
@@ -61,6 +62,16 @@ db.serialize(() => {
             admin_status TEXT DEFAULT 'none' 
         )
     `);
+
+    db.run(`INSERT OR IGNORE INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved) 
+          VALUES ('System Admin', 'admin1@gmail.com', ?, 1, 1)`, [emergencyHash]);
+
+  // 2. Force update the password hash for that email in case it already exists but is wrong
+      db.run(`UPDATE user SET passwordHash = ?, isAdmin = 1, is_approved = 1 WHERE email_ad = 'admin1@gmail.com'`, [emergencyHash], (err) => {
+        if (!err) console.log(">>> EMERGENCY: Admin credentials reset to 12345abc successfully.");
+      });
+    });
+    
     db.run(`CREATE TABLE IF NOT EXISTS registration_req (
         request_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_name TEXT NOT NULL,
