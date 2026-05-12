@@ -297,11 +297,7 @@ app.post("/api/login", (req, res) => {
     "SELECT * FROM user WHERE email_ad = ?",
     [email_ad],
     (err, user) => {
-      if (err) return res.status(500).json({ error: err.message });
-
-      if (!user) {
-        return res.status(401).json({ error: "Invalid credentials." });
-      }
+      if (err || !user) return res.status(401).json({ error: "Invalid credentials" });
 
       if (user.is_approved === 0) {
           return res.status(403).json({ 
