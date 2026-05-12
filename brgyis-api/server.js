@@ -353,62 +353,55 @@ app.post('/api/signup', (req, res) => {
     });
 });
 
+// Approve Resident
 app.post('/api/approve-resident/:id', authenticateToken, requireAdmin, (req, res) => {
     const { id } = req.params;
 
-    // 1. Get the data from the staging table
     db.get("SELECT * FROM registration_req WHERE request_id = ?", [id], (err, row) => {
-        if (err) return res.status(500).json({ error: "Database error: " + err.message });
-        if (!row) return res.status(404).json({ error: "Resident request not found" });
+        if (err) return res.status(500).json({ error: "Database error" });
+        if (!row) return res.status(404).json({ error: "Request not found" });
 
-        // Debugging: Ensure passwordHash exists in row
+        // SAFETY CHECK: Prevent the NOT NULL constraint error
         if (!row.passwordHash) {
-            return res.status(500).json({ error: "Critical Error: passwordHash missing from registration_req table" });
+            return res.status(400).json({ error: "Cannot approve: Password data is missing in the request." });
         }
 
-        // 2. Insert into the main user table (isAdmin = 0)
         const insertSql = `
             INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved) 
             VALUES (?, ?, ?, 0, 1)`;
         
         db.run(insertSql, [row.user_name, row.email_ad, row.passwordHash], function(err) {
-            if (err) {
-                console.error("Insert into user failed:", err.message);
-                return res.status(500).json({ error: "Failed to create user: " + err.message });
-            }
+            if (err) return res.status(500).json({ error: "Failed to create user: " + err.message });
 
-            // 3. Remove from staging
-            db.run("DELETE FROM registration_req WHERE request_id = ?", [id], (delErr) => {
-                if (delErr) console.error("Failed to delete request record:", delErr.message);
-                res.json({ message: "Resident approved successfully!" });
-            });
+            db.run("DELETE FROM registration_req WHERE request_id = ?", [id]);
+            res.json({ message: "Resident approved successfully!" });
         });
     });
 });
+
+// Approve Admin
 app.post('/api/approve-admin/:id', authenticateToken, requireAdmin, (req, res) => {
     const { id } = req.params;
 
-    // Fixed: Changed 'requestId' to 'id' to match req.params
+    // FIX: Changed 'requestId' to 'id' to match the params variable
     db.get("SELECT * FROM admin_req WHERE admin_req_id = ?", [id], (err, row) => {
-        if (err) return res.status(500).json({ error: "Database error: " + err.message });
+        if (err) return res.status(500).json({ error: "Database error" });
         if (!row) return res.status(404).json({ error: "Admin request not found" });
 
-        // Insert with isAdmin = 1
+        if (!row.passwordHash) {
+            return res.status(400).json({ error: "Cannot approve: Admin password data is missing." });
+        }
+
         const insertSql = `
             INSERT INTO user (user_name, email_ad, passwordHash, isAdmin, is_approved) 
             VALUES (?, ?, ?, 1, 1)`;
         
         db.run(insertSql, [row.user_name, row.email_ad, row.passwordHash], function(err) {
-            if (err) {
-                console.error("Insert into user failed:", err.message);
-                return res.status(500).json({ error: "Failed to create admin: " + err.message });
-            }
+            if (err) return res.status(500).json({ error: "Failed to create admin: " + err.message });
 
-            // Fixed: Ensure the DELETE uses the correct primary key 'admin_req_id'
-            db.run("DELETE FROM admin_req WHERE admin_req_id = ?", [id], (delErr) => {
-                if (delErr) console.error("Failed to delete request record:", delErr.message);
-                res.json({ message: "Admin promoted and approved!" });
-            });
+            // FIX: Ensure the DELETE uses 'admin_req_id' to match your schema
+            db.run("DELETE FROM admin_req WHERE admin_req_id = ?", [id]);
+            res.json({ message: "Admin promoted and approved!" });
         });
     });
 });
