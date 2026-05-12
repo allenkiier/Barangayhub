@@ -293,24 +293,25 @@ const requireAdmin = (req, res, next) => {
 app.post("/api/login", (req, res) => {
   const { email_ad, password, isAdmin } = req.body;
 
-  db.get(
-    "SELECT * FROM user WHERE email_ad = ?",
-    [email_ad],
-    (err, user) => {
-      if (err || !user) return res.status(401).json({ error: "Invalid credentials" });
+  db.get("SELECT * FROM user WHERE email_ad = ?", [email_ad], (err, user) => {
+    if (err) return res.status(500).json({ error: "Database error" });
 
-      if (user.is_approved === 0) {
-          return res.status(403).json({ 
-          error: "Your account is still pending approval from the Barangay Office." 
-        });
+    // 1. Check if email exists
+    if (!user) {
+      return res.status(404).json({ error: "Email address not found." });
+    }
+
+    if (user.is_approved === 0) {
+      return res.status(403).json({ error: "Account pending approval." });
+    }
+
+    bcrypt.compare(password, user.passwordHash, (cmpErr, match) => {
+      if (cmpErr) return res.status(500).json({ error: "Encryption error" });
+
+      // 2. Check if password matches
+      if (!match) {
+        return res.status(401).json({ error: "Incorrect password. Please try again." });
       }
-
-      bcrypt.compare(password, user.passwordHash, (cmpErr, match) => {
-        if (cmpErr) return res.status(500).json({ error: cmpErr.message });
-
-        if (!match) {
-          return res.status(401).json({ error: "Invalid credentials." });
-        }
 
         if (isAdmin && user.isAdmin !== 1) {
           return res.status(403).json({ error: "Not an admin." });
@@ -329,8 +330,7 @@ app.post("/api/login", (req, res) => {
         res.json({
           token: token,
           userid: user.userid,
-          isAdmin: user.isAdmin,
-          token,
+          isAdmin: user.isAdmin
         });
       });
     }
