@@ -123,7 +123,7 @@ const Profiling = () => {
               <TextField
                 sx={{ width: '400px' }}
                 size="small"
-                label="Full Name"
+                label="Full Name *"
                 name="user_name"
                 value={formData.user_name || ""}
                 onChange={handleChange}
@@ -140,7 +140,7 @@ const Profiling = () => {
               <TextField
                 fullWidth
                 size="small"
-                label="Email"
+                label="Email *"
                 name="email_ad"
                 value={formData.email_ad || ""}
                 onChange={handleChange}
@@ -150,7 +150,7 @@ const Profiling = () => {
               <TextField
                 fullWidth
                 size="small"
-                label="Contact Number"
+                label="Contact Number *"
                 name="contact_no"
                 value={formData.contact_no || ""}
                 onChange={handleChange}
@@ -160,7 +160,7 @@ const Profiling = () => {
               <TextField
                 fullWidth
                 size="small"
-                label="National ID"
+                label="National ID *"
                 name="national_id"
                 value={formData.national_id || ""}
                 onChange={handleChange}
@@ -178,7 +178,7 @@ const Profiling = () => {
               <TextField
                 sx={{width: "100px"}}
                 size="small"
-                label="Sex"
+                label="Sex *"
                 name="sex"
                 value={formData.sex || ""}
                 onChange={handleChange}
@@ -188,7 +188,7 @@ const Profiling = () => {
                 sx={{width: "170px"}}
                 size="small"
                 type="date"
-                label="Birthdate"
+                label="Birthdate *"
                 name="birthdate"
                 InputLabelProps={{ shrink: true }}
                 value={formData.birthdate || ""}
@@ -198,7 +198,7 @@ const Profiling = () => {
               <TextField
                 sx={{width: "300px"}}
                 size="small"
-                label="Birthplace"
+                label="Birthplace *"
                 name="birthplace"
                 value={formData.birthplace || ""}
                 onChange={handleChange}
@@ -206,7 +206,7 @@ const Profiling = () => {
               <TextField
                 sx={{width: "200px"}}
                 size="small"
-                label="Civil Status"
+                label="Civil Status *"
                 name="civil_status"
                 value={formData.civil_status || ""}
                 onChange={handleChange}
@@ -224,7 +224,7 @@ const Profiling = () => {
                 sx={{width:"200px", marginBottom: 2}}
                 size="small"
                 type="date"
-                label="Residence Date Started"
+                label="Residence Date Started *"
                 name="residence_start_date"
                 InputLabelProps={{ shrink: true }}
                 value={formData.residence_start_date || ""}
@@ -235,7 +235,7 @@ const Profiling = () => {
                 <TextField
                   sx={{width: "150px"}}
                   size="small"
-                  label="House No"
+                  label="House No *"
                   name="house_no"
                   value={formData.house_no || ""}
                   onChange={handleChange}
@@ -243,7 +243,7 @@ const Profiling = () => {
                 <TextField
                   sx={{width: "200px"}}
                   size="small"
-                  label="Street"
+                  label="Street *"
                   name="street"
                   value={formData.street || ""}
                   onChange={handleChange}
@@ -251,7 +251,7 @@ const Profiling = () => {
                  <TextField
                   sx={{width: "150px"}}
                   size="small"
-                  label="Barangay"
+                  label="Barangay *"
                   name="barangay"
                   value={formData.barangay || ""}
                   onChange={handleChange}
@@ -259,7 +259,7 @@ const Profiling = () => {
                 <TextField
                   sx={{width: "150px"}}
                   size="small"
-                  label="Municipality"
+                  label="Municipality *"
                   name="municipality"
                   value={formData.municipality || ""}
                   onChange={handleChange}
@@ -267,7 +267,7 @@ const Profiling = () => {
                 <TextField
                   sx={{width: "100px"}}
                   size="small"
-                  label="Province"
+                  label="Province *"
                   name="province"
                   value={formData.province || ""}
                   onChange={handleChange}

@@ -118,8 +118,6 @@ const TransactionList = () => {
             })}
           </Grid>
         )}
-
-        {/* Conditional Rendering of Modals - Ensures props match server.js logic */}
         
         {selectedService === 'Certificate of Indigency' && (
           <IndigencyRequest
