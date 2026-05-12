@@ -338,19 +338,28 @@ app.post("/api/login", (req, res) => {
 });
 
 // ===================== SIGNUP =====================
-app.post('/api/signup', (req, res) => {
+app.post('/api/signup', async (req, res) => {
     const { user_name, email_ad, password, isAdmin } = req.body;
+    
     const tableName = isAdmin ? "admin_req" : "registration_req";
     
-    const sql = `INSERT INTO ${tableName} (user_name, email_ad, password) VALUES (?, ?, ?)`;
-    
-    db.run(sql, [user_name, email_ad, password], function(err) {
-        if (err) {
-            if (err.message.includes("UNIQUE")) return res.status(400).json({ error: "Email is already pending." });
-            return res.status(500).json({ error: "Database error." });
-        }
-        res.status(201).json({ message: "Request submitted for approval!" });
-    });
+    try {
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Insert into the STAGING table first
+        const sql = `INSERT INTO ${tableName} (user_name, email_ad, passwordHash) VALUES (?, ?, ?)`;
+        
+        db.run(sql, [user_name, email_ad, hashedPassword], function(err) {
+            if (err) {
+                if (err.message.includes("UNIQUE")) return res.status(400).json({ error: "Email already has a pending request." });
+                return res.status(500).json({ error: "Database error during registration." });
+            }
+            res.status(201).json({ message: "Request submitted! Please wait for Barangay Office approval." });
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Server error." });
+    }
 });
 
 // Approve Resident
