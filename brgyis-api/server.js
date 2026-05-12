@@ -65,7 +65,7 @@ db.serialize(() => {
         request_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_name TEXT NOT NULL,
         email_ad TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
+        passwordHash TEXT NOT NULL,
         request_date DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
@@ -73,7 +73,7 @@ db.serialize(() => {
         admin_req_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_name TEXT NOT NULL,
         email_ad TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
+        passwordHash TEXT NOT NULL,
         request_date DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
@@ -340,25 +340,26 @@ app.post("/api/login", (req, res) => {
 // ===================== SIGNUP =====================
 app.post('/api/signup', async (req, res) => {
     const { user_name, email_ad, password, isAdmin } = req.body;
-    
     const tableName = isAdmin ? "admin_req" : "registration_req";
     
     try {
-
+        // Securely hash the password before it even hits the staging table
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert into the STAGING table first
+        // Insert into the staging table using the column 'passwordHash'
         const sql = `INSERT INTO ${tableName} (user_name, email_ad, passwordHash) VALUES (?, ?, ?)`;
         
         db.run(sql, [user_name, email_ad, hashedPassword], function(err) {
             if (err) {
-                if (err.message.includes("UNIQUE")) return res.status(400).json({ error: "Email already has a pending request." });
-                return res.status(500).json({ error: "Database error during registration." });
+                if (err.message.includes("UNIQUE")) {
+                    return res.status(400).json({ error: "This email is already pending approval." });
+                }
+                return res.status(500).json({ error: "Database error." });
             }
-            res.status(201).json({ message: "Request submitted! Please wait for Barangay Office approval." });
+            res.status(201).json({ message: "Request submitted for approval!" });
         });
     } catch (error) {
-        res.status(500).json({ error: "Server error." });
+        res.status(500).json({ error: "Internal server error." });
     }
 });
 
