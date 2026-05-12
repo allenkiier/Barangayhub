@@ -71,7 +71,7 @@ db.serialize(() => {
         if (!err) console.log(">>> EMERGENCY: Admin credentials reset to 12345abc successfully.");
       });
     });
-    
+
     db.run(`CREATE TABLE IF NOT EXISTS registration_req (
         request_id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_name TEXT NOT NULL,
@@ -146,7 +146,7 @@ db.serialize(() => {
       `INSERT OR IGNORE INTO transactions (trans_id, trans_name, amount) VALUES (?, ?, ?)`,
       [index + 1, name, "0"]
     );
-  });
+  
 
     db.run(`
       CREATE TABLE IF NOT EXISTS request (
@@ -261,13 +261,7 @@ db.serialize(() => {
         type TEXT NOT NULL
       );
     `);
-
-    
-  });
-
-  
-
-
+});
 // ===================== HELPERS =====================
 const calculateAge = (birthdate) => {
   if (!birthdate) return '';
