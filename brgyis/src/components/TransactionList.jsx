@@ -126,7 +126,7 @@ const TransactionList = () => {
           />
         )}
 
-        {selectedService === 'Barangay ID Form' && (
+        {selectedService === 'Barangay ID' && (
           <BrgyIDRequest
             open={true}
             onClose={handleCloseModal}
@@ -142,7 +142,7 @@ const TransactionList = () => {
           />
         )}
 
-        {selectedService === 'Barangay Business Clearance' && (
+        {selectedService === 'Business Clearance' && (
           <BusinessClearanceRequest
             open={true}
             onClose={handleCloseModal}
